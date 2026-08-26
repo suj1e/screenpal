@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ScreenPal</string>
+    <string name="permission_overlay">悬浮窗权限</string>
+    <string name="permission_overlay_desc">允许在其他应用上层显示悬浮球</string>
+    <string name="permission_notification">通知权限</string>
+    <string name="permission_notification_desc">用于显示前台服务通知</string>
+    <string name="permission_capture">屏幕截图权限</string>
+    <string name="permission_capture_desc">允许截取当前屏幕内容</string>
+    <string name="start_floating_window">启动悬浮窗</string>
+    <string name="stop_floating_window">停止悬浮窗</string>
+    <string name="tts_mode_pipper">Piper 离线</string>
+    <string name="tts_mode_cloud">云端 TTS</string>
+    <string name="tts_mode_system">系统默认</string>
+    <string name="ocr_mode_local">仅端侧</string>
+    <string name="ocr_mode_cloud">仅云端</string>
+    <string name="ocr_mode_hybrid">混合模式</string>
+    <string name="settings">设置</string>
+    <string name="rate">语速</string>
+    <string name="pitch">音调</string>
+</resources>

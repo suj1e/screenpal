@@ -2,8 +2,8 @@
 
 ## Task 1.1 创建 Gradle 项目骨架
 
-- [ ] 创建项目级 `build.gradle.kts`（repositories + plugins 声明）
-- [ ] 创建项目级 `settings.gradle.kts`（pluginManagement + dependencyResolutionManagement）
+- [x] 创建项目级 `build.gradle.kts`（repositories + plugins 声明）
+- [x] 创建项目级 `settings.gradle.kts`（pluginManagement + dependencyResolutionManagement）
 - [ ] 创建 `gradle.properties`（org.gradle.jvmargs、android.useAndroidX、kotlin.code.style）
 - [ ] 创建 `gradle/wrapper/gradle-wrapper.properties`
 - [ ] 执行 `gradle wrapper` 生成 wrapper 文件
@@ -12,10 +12,10 @@
 
 ## Task 1.2 创建 app 模块与包目录
 
-- [ ] 创建 `app/build.gradle.kts`（compose + dependencies）
-- [ ] 创建 `app/src/main/` 目录结构
-- [ ] 创建包目录：`com.suj1e.screenpal`、`service`、`overlay`、`ocr`、`tts`、`util`、`ui.theme`
-- [ ] 配置 Compose BOM 版本
+- [x] 创建 `app/build.gradle.kts`（compose + dependencies）
+- [x] 创建 `app/src/main/` 目录结构
+- [x] 创建包目录：`com.suj1e.screenpal`、`service`、`overlay`、`ocr`、`tts`、`util`、`ui.theme`
+- [x] 配置 Compose BOM 版本
 - **测试验收标准**：项目结构符合设计文档架构图，包目录完整
 
 ## Task 1.3 编写 AndroidManifest.xml
