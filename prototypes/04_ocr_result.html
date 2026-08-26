@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>ScreenPal - 识别结果</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f4f4fa;
+    max-width: 430px; margin: 0 auto;
+    min-height: 100vh;
+  }
+
+  /* Screenshot preview area */
+  .result-area {
+    position: relative;
+    width: 100%; aspect-ratio: 9/16;
+    background: linear-gradient(175deg, #1e1b4b 0%, #1e3a5f 35%, #0f172a 70%, #1a1a2e 100%);
+    overflow: hidden;
+  }
+  .result-frame {
+    position: absolute;
+    top: 16px; left: 16px; right: 16px; bottom: 16px;
+    border: 2.5px solid transparent;
+    background:
+      linear-gradient(#1e1b4b, #1e1b4b) padding-box,
+      linear-gradient(135deg, #6366f1, #a78bfa) border-box;
+    border-radius: 20px;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.05), 0 8px 32px rgba(0,0,0,0.3);
+  }
+  .result-placeholder {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: rgba(255,255,255,0.25); font-size: 13px; font-weight: 500;
+  }
+  .result-badge {
+    position: absolute; top: 28px; left: 28px;
+    background: rgba(99,102,241,0.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: white; padding: 5px 12px; border-radius: 10px;
+    font-size: 11px; font-weight: 700;
+    box-shadow: 0 4px 12px rgba(99,102,241,0.3);
+  }
+
+  /* Bottom sheet */
+  .sheet {
+    background: white;
+    border-radius: 28px 28px 0 0;
+    margin-top: -28px;
+    position: relative;
+    z-index: 10;
+    box-shadow: 0 -8px 32px rgba(0,0,0,0.08);
+    padding: 12px 18px 20px;
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+  }
+  .sheet-handle {
+    width: 36px; height: 5px; border-radius: 3px;
+    background: #e5e7eb; margin: 4px auto 18px;
+  }
+
+  .ocr-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .ocr-title { font-size: 18px; font-weight: 800; letter-spacing: -0.3px; }
+  .ocr-badge {
+    font-size: 11px; font-weight: 700;
+    padding: 5px 12px; border-radius: 20px;
+    background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+    color: #065f46;
+    box-shadow: 0 2px 8px rgba(16,185,129,0.15);
+  }
+  .ocr-badge.cloud {
+    background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+    color: #1e40af;
+    box-shadow: 0 2px 8px rgba(59,130,246,0.15);
+  }
+
+  .text-card {
+    background: #fafbfd;
+    border-radius: 18px;
+    padding: 18px;
+    margin-bottom: 14px;
+    border: 1px solid #f0f0f5;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+  }
+  .text-content {
+    font-size: 15px; line-height: 1.85;
+    color: #1f2937;
+    letter-spacing: -0.1px;
+  }
+  .text-confidence {
+    margin-top: 12px; font-size: 12px; color: #9ca3af;
+    display: flex; align-items: center; gap: 8px;
+    font-weight: 600;
+  }
+  .confidence-bar {
+    flex: 1; height: 5px; border-radius: 3px;
+    background: #f0f0f5; overflow: hidden;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .confidence-fill {
+    height: 100%; border-radius: 3px;
+    background: linear-gradient(90deg, #6366f1, #a78bfa);
+    width: 96%;
+    box-shadow: 0 0 8px rgba(99,102,241,0.3);
+  }
+
+  /* TTS section - premium gradient card */
+  .tts-section {
+    background: linear-gradient(145deg, #6366f1 0%, #7c3aed 50%, #8b5cf6 100%);
+    border-radius: 20px;
+    padding: 18px;
+    color: white;
+    box-shadow: 0 8px 24px rgba(99,102,241,0.3), 0 0 0 1px rgba(255,255,255,0.1) inset;
+    position: relative;
+    overflow: hidden;
+  }
+  .tts-section::before {
+    content: '';
+    position: absolute; top: -40%; right: -20%;
+    width: 160px; height: 160px;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .tts-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 14px;
+    position: relative;
+  }
+  .tts-label { font-size: 14px; font-weight: 700; }
+  .tts-engine {
+    font-size: 11px; opacity: 0.7; font-weight: 500;
+    margin-top: 2px;
+  }
+
+  /* Waveform animation */
+  .wave-container {
+    display: flex; align-items: center; gap: 3px; height: 32px;
+    margin-bottom: 14px;
+  }
+  .wave-bar {
+    width: 4px; border-radius: 2px;
+    background: rgba(255,255,255,0.5);
+    transition: height 0.15s;
+  }
+  .wave-bar.active {
+    animation: wave 0.5s ease-in-out infinite;
+    background: rgba(255,255,255,0.9);
+  }
+  @keyframes wave {
+    0%, 100% { height: 6px; }
+    50% { height: 28px; }
+  }
+
+  .engine-tabs {
+    display: flex; gap: 6px; margin-bottom: 12px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 12px; padding: 4px;
+  }
+  .engine-tab {
+    flex: 1; padding: 8px 6px; border-radius: 9px;
+    background: transparent;
+    border: none;
+    font-size: 12px; font-weight: 600;
+    text-align: center; cursor: pointer;
+    color: rgba(255,255,255,0.65);
+    transition: all 0.2s;
+  }
+  .engine-tab.active {
+    background: rgba(255,255,255,0.2);
+    color: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+
+  .tts-controls {
+    display: flex; gap: 10px;
+    position: relative;
+  }
+  .tts-btn {
+    flex: 1; padding: 13px; border-radius: 14px; border: none;
+    font-size: 14px; font-weight: 700;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    transition: all 0.15s;
+    letter-spacing: -0.2px;
+  }
+  .tts-btn:active { transform: scale(0.96); }
+  .tts-btn.primary {
+    background: white;
+    color: #6366f1;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  .tts-btn.secondary {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: white;
+  }
+
+  .action-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+    margin-top: 18px;
+  }
+  .action-item {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 7px; padding: 14px 4px; border-radius: 16px;
+    background: #fafbfd;
+    border: 1px solid #f0f0f5;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .action-item:active {
+    background: #f0f0f5;
+    transform: scale(0.94);
+    border-color: #e5e7eb;
+  }
+  .action-icon { font-size: 22px; }
+  .action-label { font-size: 11px; color: #6b7280; font-weight: 600; }
+</style>
+</head>
+<body>
+  <div class="result-area">
+    <div class="result-frame">
+      <div class="result-placeholder">截图预览 · 选区高亮</div>
+    </div>
+    <div class="result-badge">🔍 ML Kit + 云端混合</div>
+  </div>
+
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+
+    <div class="ocr-header">
+      <div class="ocr-title">识别结果</div>
+      <div class="ocr-badge">端侧 96% · 云端增强</div>
+    </div>
+
+    <div class="text-card">
+      <div class="text-content">
+        "AI 技术在 2025 年迎来爆发式增长。多个大模型相继发布，端侧 AI 能力大幅提升，移动设备首次可以离线运行高性能推理。"
+      </div>
+      <div class="text-confidence">
+        <span>置信度</span>
+        <div class="confidence-bar"><div class="confidence-fill"></div></div>
+        <span>96%</span>
+      </div>
+    </div>
+
+    <div class="tts-section">
+      <div class="tts-header">
+        <div>
+          <div class="tts-label">🔊 语音播报</div>
+          <div class="tts-engine">Piper · zh_CN-huayan-medium</div>
+        </div>
+        <div class="wave-container" id="waveContainer">
+          <div class="wave-bar" style="height:6px"></div>
+          <div class="wave-bar" style="height:10px"></div>
+          <div class="wave-bar" style="height:16px"></div>
+          <div class="wave-bar" style="height:10px"></div>
+          <div class="wave-bar" style="height:6px"></div>
+          <div class="wave-bar" style="height:14px"></div>
+          <div class="wave-bar" style="height:8px"></div>
+        </div>
+      </div>
+
+      <div class="engine-tabs">
+        <button class="engine-tab active" onclick="switchTab(this)">🧠 Piper</button>
+        <button class="engine-tab" onclick="switchTab(this)">☁️ Edge TTS</button>
+        <button class="engine-tab" onclick="switchTab(this)">📱 系统</button>
+      </div>
+
+      <div class="tts-controls">
+        <button class="tts-btn primary" id="playBtn" onclick="togglePlay()">▶️ 播放</button>
+        <button class="tts-btn secondary" onclick="alert('已停止播报')">⏹️ 停止</button>
+      </div>
+    </div>
+
+    <div class="action-grid">
+      <div class="action-item" onclick="alert('已重新框选')">
+        <span class="action-icon">🔄</span>
+        <span class="action-label">重新选择</span>
+      </div>
+      <div class="action-item" onclick="navigator.clipboard && alert('已复制')">
+        <span class="action-icon">📋</span>
+        <span class="action-label">复制文本</span>
+      </div>
+      <div class="action-item" onclick="alert('已分享')">
+        <span class="action-icon">📤</span>
+        <span class="action-label">分享</span>
+      </div>
+      <div class="action-item" onclick="alert('已收藏')">
+        <span class="action-icon">⭐</span>
+        <span class="action-label">收藏</span>
+      </div>
+    </div>
+  </div>
+
+<script>
+  let isPlaying = false;
+  const playBtn = document.getElementById('playBtn');
+  const bars = document.querySelectorAll('.wave-bar');
+
+  function togglePlay() {
+    isPlaying = !isPlaying;
+    if (isPlaying) {
+      playBtn.textContent = '⏸️ 暂停';
+      bars.forEach((bar, i) => {
+        bar.classList.add('active');
+        bar.style.animationDelay = (i * 0.07) + 's';
+        bar.style.animationDuration = (0.45 + Math.random() * 0.25) + 's';
+      });
+    } else {
+      playBtn.textContent = '▶️ 播放';
+      bars.forEach(bar => bar.classList.remove('active'));
+    }
+  }
+
+  function switchTab(el) {
+    el.parentElement.querySelectorAll('.engine-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,3 @@
+schema: spec-driven
+created: 2026-08-26
+goal: 完成 TTS 语音播报能力（Piper 离线优先 + 云端可选），主界面配置完整可用，全流程端到端打通

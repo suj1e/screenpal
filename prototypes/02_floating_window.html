@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>ScreenPal - 悬浮窗</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0a0a1a;
+    overflow: hidden;
+    height: 100vh;
+    user-select: none;
+  }
+
+  .phone-screen {
+    position: relative;
+    width: 100%; height: 100vh;
+    background: linear-gradient(160deg, #1a1a3e 0%, #16213e 40%, #0f3460 100%);
+    overflow: hidden;
+  }
+
+  /* Fake background app UI */
+  .fake-app {
+    padding: 48px 20px 20px;
+    color: white;
+  }
+  .fake-app-header {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 24px;
+  }
+  .fake-avatar {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1, #a855f7);
+    box-shadow: 0 4px 12px rgba(99,102,241,0.4);
+  }
+  .fake-line {
+    height: 10px; border-radius: 5px; background: rgba(255,255,255,0.12);
+    margin-bottom: 8px;
+  }
+  .fake-line.short { width: 55%; }
+  .fake-card {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 18px; padding: 18px;
+    margin-bottom: 14px;
+    backdrop-filter: blur(10px);
+  }
+  .fake-card .fake-line { background: rgba(255,255,255,0.14); }
+  .fake-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+    margin-top: 16px;
+  }
+  .fake-icon {
+    aspect-ratio: 1; border-radius: 14px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.06);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+  }
+  .fake-badge {
+    position: absolute; top: 48px; right: 20px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px; padding: 6px 14px;
+    color: rgba(255,255,255,0.7); font-size: 12px;
+    backdrop-filter: blur(10px);
+  }
+
+  /* ===== FLOATING BALL - Premium Design ===== */
+  .floating-ball-wrapper {
+    position: absolute;
+    z-index: 1000;
+    touch-action: none;
+  }
+
+  /* Outer glow rings */
+  .glow-ring {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    pointer-events: none;
+    opacity: 0;
+  }
+  .glow-ring-1 {
+    width: 80px; height: 80px;
+    background: radial-gradient(circle, rgba(99,102,241,0.25) 0%, transparent 70%);
+  }
+  .glow-ring-2 {
+    width: 110px; height: 110px;
+    background: radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 70%);
+  }
+
+  .floating-ball-wrapper.idle .glow-ring { opacity: 1; }
+  .floating-ball-wrapper.recognizing .glow-ring-1 {
+    opacity: 1;
+    animation: glowPulse 1.2s ease-in-out infinite;
+  }
+  .floating-ball-wrapper.speaking .glow-ring-1 {
+    opacity: 1;
+    animation: glowPulse 0.8s ease-in-out infinite;
+    background: radial-gradient(circle, rgba(52,211,153,0.3) 0%, transparent 70%);
+  }
+
+  @keyframes glowPulse {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.6; }
+    50% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
+  }
+
+  /* The actual ball */
+  .floating-ball {
+    position: relative;
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(145deg, #6366f1 0%, #7c3aed 50%, #a855f7 100%);
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.1),
+      0 4px 16px rgba(99,102,241,0.5),
+      0 8px 32px rgba(99,102,241,0.25),
+      inset 0 1px 0 rgba(255,255,255,0.2);
+    display: flex; align-items: center; justify-content: center;
+    cursor: grab;
+    z-index: 2;
+    transition: box-shadow 0.4s, transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+    backdrop-filter: blur(20px);
+  }
+  .floating-ball:active { cursor: grabbing; transform: scale(0.94); }
+  .floating-ball:hover { transform: scale(1.06); }
+
+  .floating-ball.recognizing {
+    background: linear-gradient(145deg, #f59e0b 0%, #f97316 50%, #ef4444 100%);
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.15),
+      0 4px 16px rgba(245,158,11,0.5),
+      0 8px 32px rgba(245,158,11,0.25),
+      inset 0 1px 0 rgba(255,255,255,0.25);
+    animation: breathe 1.2s ease-in-out infinite;
+  }
+  .floating-ball.speaking {
+    background: linear-gradient(145deg, #10b981 0%, #34d399 50%, #6ee7b7 100%);
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.15),
+      0 4px 16px rgba(16,185,129,0.5),
+      0 8px 32px rgba(16,185,129,0.25),
+      inset 0 1px 0 rgba(255,255,255,0.25);
+    animation: breathe 0.9s ease-in-out infinite;
+  }
+
+  @keyframes breathe {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.07); }
+  }
+
+  /* Inner shine */
+  .ball-shine {
+    position: absolute;
+    top: 6px; left: 8px;
+    width: 18px; height: 10px;
+    background: rgba(255,255,255,0.25);
+    border-radius: 50%;
+    filter: blur(4px);
+    pointer-events: none;
+  }
+
+  /* SVG icon inside ball */
+  .ball-icon {
+    width: 26px; height: 26px;
+    pointer-events: none;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Minimized dot */
+  .floating-ball-wrapper.minimized .floating-ball {
+    width: 42px; height: 42px;
+  }
+  .floating-ball-wrapper.minimized .ball-icon {
+    width: 20px; height: 20px;
+  }
+
+  /* Tooltip */
+  .tooltip {
+    position: absolute;
+    right: 68px; top: 50%; transform: translateY(-50%);
+    background: rgba(15, 15, 30, 0.85);
+    color: white; padding: 8px 14px; border-radius: 10px;
+    font-size: 12px; font-weight: 500;
+    white-space: nowrap;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.25s;
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  }
+  .tooltip::after {
+    content: '';
+    position: absolute;
+    right: -6px; top: 50%;
+    transform: translateY(-50%);
+    border-left: 6px solid rgba(15, 15, 30, 0.85);
+    border-top: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+  }
+  .floating-ball-wrapper:hover .tooltip,
+  .floating-ball-wrapper:active .tooltip { opacity: 1; }
+
+  /* Status dot on the ball */
+  .status-dot {
+    position: absolute;
+    top: -2px; right: -2px;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: #ef4444;
+    border: 2.5px solid #1a1a3e;
+    z-index: 3;
+    transition: background 0.3s;
+  }
+  .status-dot.recognizing { background: #f59e0b; animation: dotPulse 0.8s infinite; }
+  .status-dot.speaking { background: #10b981; animation: dotPulse 0.6s infinite; }
+  @keyframes dotPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.25); }
+  }
+
+  /* Bottom hint */
+  .hint {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    color: rgba(255,255,255,0.5); font-size: 13px;
+    text-align: center;
+    background: rgba(0,0,0,0.3);
+    padding: 8px 16px; border-radius: 20px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+
+  /* Wave animation inside ball when speaking */
+  .wave-mini {
+    position: absolute;
+    bottom: -24px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 2px;
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .floating-ball-wrapper.speaking .wave-mini { opacity: 1; }
+  .wave-mini-bar {
+    width: 2.5px; border-radius: 2px;
+    background: rgba(52,211,153,0.8);
+  }
+</style>
+</head>
+<body>
+  <div class="phone-screen" id="phoneScreen">
+    <!-- Fake background app -->
+    <div class="fake-app">
+      <div class="fake-app-header">
+        <div class="fake-avatar"></div>
+        <div>
+          <div class="fake-line" style="width:110px"></div>
+          <div class="fake-line short"></div>
+        </div>
+      </div>
+      <div class="fake-badge">🔍 发现</div>
+      <div class="fake-card">
+        <div class="fake-line" style="width:75%"></div>
+        <div class="fake-line short"></div>
+        <div class="fake-grid">
+          <div class="fake-icon">📱</div>
+          <div class="fake-icon">💬</div>
+          <div class="fake-icon">📷</div>
+          <div class="fake-icon">🎵</div>
+          <div class="fake-icon">📧</div>
+          <div class="fake-icon">🌐</div>
+          <div class="fake-icon">⚙️</div>
+          <div class="fake-icon">📁</div>
+        </div>
+      </div>
+      <div class="fake-card">
+        <div class="fake-line" style="width:65%"></div>
+        <div class="fake-line short"></div>
+        <div class="fake-line" style="width:45%"></div>
+      </div>
+    </div>
+
+    <!-- Floating ball -->
+    <div class="floating-ball-wrapper idle" id="ballWrapper" style="right: 16px; top: 180px;">
+      <!-- Glow rings -->
+      <div class="glow-ring glow-ring-2"></div>
+      <div class="glow-ring glow-ring-1"></div>
+
+      <!-- Ball -->
+      <div class="floating-ball" id="floatingBall">
+        <div class="ball-shine"></div>
+        <!-- Waveform icon SVG -->
+        <svg class="ball-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="9" width="3" height="6" rx="1.5" fill="white" opacity="0.9"/>
+          <rect x="7.5" y="5" width="3" height="14" rx="1.5" fill="white" opacity="0.9"/>
+          <rect x="13" y="7" width="3" height="10" rx="1.5" fill="white" opacity="0.9"/>
+          <rect x="18.5" y="3" width="3" height="18" rx="1.5" fill="white" opacity="0.9"/>
+        </svg>
+      </div>
+
+      <!-- Status dot -->
+      <div class="status-dot" id="statusDot"></div>
+
+      <!-- Tooltip -->
+      <div class="tooltip" id="tooltip">点击识别 · 拖拽移动</div>
+    </div>
+
+    <div class="hint">👇 拖拽移动 · 点击触发识别</div>
+  </div>
+
+<script>
+  const ballWrapper = document.getElementById('ballWrapper');
+  const ball = document.getElementById('floatingBall');
+  const screen = document.getElementById('phoneScreen');
+  const tooltip = document.getElementById('tooltip');
+  const statusDot = document.getElementById('statusDot');
+
+  let isDragging = false, hasMoved = false;
+  let startX, startY, startLeft, startTop;
+  const threshold = 6;
+
+  function getPos(e) {
+    if (e.touches) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    return { x: e.clientX, y: e.clientY };
+  }
+
+  function onStart(e) {
+    const pos = getPos(e);
+    isDragging = true; hasMoved = false;
+    startX = pos.x; startY = pos.y;
+    startLeft = ballWrapper.offsetLeft;
+    startTop = ballWrapper.offsetTop;
+    ball.style.transition = 'none';
+    ballWrapper.style.transition = 'none';
+    e.preventDefault();
+  }
+
+  function onMove(e) {
+    if (!isDragging) return;
+    const pos = getPos(e);
+    const dx = pos.x - startX, dy = pos.y - startY;
+    if (Math.abs(dx) > threshold || Math.abs(dy) > threshold) hasMoved = true;
+
+    let newLeft = startLeft + dx;
+    let newTop = startTop + dy;
+    newLeft = Math.max(0, Math.min(screen.offsetWidth - ballWrapper.offsetWidth, newLeft));
+    newTop = Math.max(0, Math.min(screen.offsetHeight - ballWrapper.offsetHeight, newTop));
+
+    ballWrapper.style.right = 'auto';
+    ballWrapper.style.left = newLeft + 'px';
+    ballWrapper.style.top = newTop + 'px';
+    e.preventDefault();
+  }
+
+  function onEnd(e) {
+    if (!isDragging) return;
+    isDragging = false;
+    ball.style.transition = 'box-shadow 0.4s, transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1)';
+    ballWrapper.style.transition = 'opacity 0.3s';
+
+    if (!hasMoved) {
+      triggerRecognition();
+    }
+  }
+
+  function setState(state) {
+    ballWrapper.className = 'floating-ball-wrapper ' + state;
+    ball.className = 'floating-ball ' + state;
+    statusDot.className = 'status-dot ' + (state === 'idle' ? '' : state);
+
+    if (state === 'idle') {
+      tooltip.textContent = '点击识别 · 拖拽移动';
+    } else if (state === 'recognizing') {
+      tooltip.textContent = '识别中...';
+    } else if (state === 'speaking') {
+      tooltip.textContent = '播报中...';
+    }
+  }
+
+  function triggerRecognition() {
+    setState('recognizing');
+
+    setTimeout(() => {
+      setState('speaking');
+      setTimeout(() => {
+        setState('idle');
+      }, 4000);
+    }, 1800);
+  }
+
+  ballWrapper.addEventListener('mousedown', onStart);
+  ballWrapper.addEventListener('touchstart', onStart, { passive: false });
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('touchmove', onMove, { passive: false });
+  document.addEventListener('mouseup', onEnd);
+  document.addEventListener('touchend', onEnd);
+</script>
+</body>
+</html>

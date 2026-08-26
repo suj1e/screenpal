@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>ScreenPal - 主界面</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f8f9fc;
+    color: #1a1a2e;
+    max-width: 430px;
+    margin: 0 auto;
+    min-height: 100vh;
+  }
+
+  /* Header with premium gradient */
+  .header {
+    background: linear-gradient(145deg, #6366f1 0%, #7c3aed 40%, #a855f7 100%);
+    padding: 56px 24px 36px;
+    border-radius: 0 0 32px 32px;
+    color: white;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute; top: -50%; right: -30%;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .header-content { position: relative; z-index: 1; }
+  .header-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,0.15);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 12px; font-weight: 500;
+    margin-bottom: 14px;
+  }
+  .header h1 { font-size: 30px; font-weight: 800; letter-spacing: -0.5px; }
+  .header p { font-size: 14px; opacity: 0.85; margin-top: 6px; font-weight: 500; }
+
+  .section { padding: 20px 16px; }
+  .section-title {
+    font-size: 12px; font-weight: 700; color: #8b8fa8;
+    text-transform: uppercase; letter-spacing: 1px;
+    margin-bottom: 12px; padding-left: 4px;
+  }
+
+  .card {
+    background: white;
+    border-radius: 20px;
+    padding: 6px 16px;
+    margin-bottom: 14px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04);
+    border: 1px solid rgba(0,0,0,0.04);
+  }
+
+  .perm-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 0;
+    border-bottom: 1px solid #f4f4f8;
+  }
+  .perm-item:last-child { border-bottom: none; }
+  .perm-left { display: flex; align-items: center; gap: 12px; }
+  .perm-icon {
+    width: 42px; height: 42px; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .perm-icon.granted {
+    background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  }
+  .perm-icon.denied {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+  }
+  .perm-name { font-size: 15px; font-weight: 600; color: #1a1a2e; }
+  .perm-desc { font-size: 12px; color: #9ca3af; margin-top: 2px; }
+  .perm-status {
+    font-size: 11px; font-weight: 700; padding: 5px 12px;
+    border-radius: 20px; letter-spacing: 0.3px;
+  }
+  .perm-status.granted {
+    background: #d1fae5; color: #065f46;
+  }
+  .perm-status.denied {
+    background: #fef3c7; color: #92400e;
+  }
+
+  .toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 0;
+    border-bottom: 1px solid #f4f4f8;
+  }
+  .toggle-row:last-child { border-bottom: none; }
+  .toggle-label { font-size: 15px; font-weight: 600; }
+  .toggle-desc { font-size: 12px; color: #9ca3af; margin-top: 2px; }
+
+  /* Premium toggle switch */
+  .toggle {
+    width: 52px; height: 30px; border-radius: 15px;
+    background: #e5e7eb; position: relative; cursor: pointer;
+    transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.08);
+  }
+  .toggle.active {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.1), 0 0 0 3px rgba(99,102,241,0.15);
+  }
+  .toggle-knob {
+    width: 26px; height: 26px; border-radius: 13px;
+    background: white; position: absolute; top: 2px; left: 2px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15), 0 1px 2px rgba(0,0,0,0.1);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .toggle.active .toggle-knob { transform: translateX(22px); }
+
+  .slider-group { margin: 14px 0; }
+  .slider-group:first-of-type { margin-top: 0; }
+  .slider-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .slider-label { font-size: 14px; font-weight: 600; }
+  .slider-value {
+    font-size: 13px; font-weight: 700;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Premium slider */
+  .slider-wrap { position: relative; }
+  .slider {
+    -webkit-appearance: none; width: 100%; height: 6px;
+    border-radius: 3px; background: #f0f0f5; outline: none;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 24px; height: 24px;
+    border-radius: 12px;
+    background: linear-gradient(145deg, #6366f1, #8b5cf6);
+    box-shadow: 0 2px 8px rgba(99,102,241,0.4), 0 0 0 4px rgba(99,102,241,0.1);
+    cursor: pointer;
+    transition: box-shadow 0.2s;
+  }
+  .slider::-webkit-slider-thumb:hover {
+    box-shadow: 0 2px 12px rgba(99,102,241,0.5), 0 0 0 6px rgba(99,102,241,0.15);
+  }
+
+  /* Premium mode buttons */
+  .mode-select { display: flex; gap: 8px; margin-top: 10px; }
+  .mode-btn {
+    flex: 1; padding: 11px 8px; border-radius: 12px;
+    border: 1.5px solid #f0f0f5;
+    background: #fafafa;
+    font-size: 13px; font-weight: 600;
+    cursor: pointer; text-align: center;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    color: #6b7280;
+  }
+  .mode-btn.active {
+    border-color: #6366f1;
+    background: linear-gradient(135deg, #eef2ff, #f5f3ff);
+    color: #6366f1;
+    box-shadow: 0 2px 8px rgba(99,102,241,0.15);
+  }
+
+  .input-field {
+    width: 100%; padding: 13px 16px; border-radius: 14px;
+    border: 1.5px solid #f0f0f5;
+    background: #fafafa;
+    font-size: 14px; margin-top: 12px;
+    outline: none;
+    transition: all 0.2s;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.03);
+  }
+  .input-field:focus {
+    border-color: #6366f1;
+    background: white;
+    box-shadow: 0 0 0 4px rgba(99,102,241,0.1), inset 0 1px 2px rgba(0,0,0,0.03);
+  }
+
+  /* Premium primary button */
+  .btn-primary {
+    width: 100%; padding: 17px; border-radius: 16px; border: none;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: white; font-size: 16px; font-weight: 700;
+    cursor: pointer; margin-top: 10px;
+    box-shadow: 0 4px 16px rgba(99,102,241,0.35), 0 0 0 1px rgba(255,255,255,0.1) inset;
+    transition: all 0.2s;
+    letter-spacing: 0.3px;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-primary::before {
+    content: '';
+    position: absolute; top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s;
+  }
+  .btn-primary:hover::before { left: 100%; }
+  .btn-primary:active { transform: scale(0.98); box-shadow: 0 2px 8px rgba(99,102,241,0.3); }
+
+  /* Card inner spacing fix */
+  .card .toggle-row:first-child { padding-top: 4px; }
+  .card .toggle-row:last-child { padding-bottom: 4px; }
+  .card .slider-group:first-of-type { margin-top: 4px; }
+  .card .mode-select { margin-top: 6px; }
+  .card .input-field { margin-top: 10px; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-content">
+      <div class="header-badge">✨ 屏幕识别 + 语音播报</div>
+      <h1>ScreenPal</h1>
+      <p>框选屏幕，自动识别，语音播报</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">🔐 权限状态</div>
+    <div class="card">
+      <div class="perm-item">
+        <div class="perm-left">
+          <div class="perm-icon denied">🪟</div>
+          <div>
+            <div class="perm-name">悬浮窗权限</div>
+            <div class="perm-desc">允许在其他应用上层显示</div>
+          </div>
+        </div>
+        <div class="perm-status denied">未授权</div>
+      </div>
+      <div class="perm-item">
+        <div class="perm-left">
+          <div class="perm-icon granted">🔔</div>
+          <div>
+            <div class="perm-name">通知权限</div>
+            <div class="perm-desc">前台服务通知</div>
+          </div>
+        </div>
+        <div class="perm-status granted">已授权</div>
+      </div>
+      <div class="perm-item">
+        <div class="perm-left">
+          <div class="perm-icon granted">📸</div>
+          <div>
+            <div class="perm-name">屏幕截图</div>
+            <div class="perm-desc">MediaProjection 授权</div>
+          </div>
+        </div>
+        <div class="perm-status granted">已授权</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">🔊 TTS 语音引擎</div>
+    <div class="card">
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">启用悬浮窗</div>
+          <div class="toggle-desc">退出 App 后显示悬浮球</div>
+        </div>
+        <div class="toggle active" onclick="this.classList.toggle('active')"><div class="toggle-knob"></div></div>
+      </div>
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">TTS 模式</div>
+          <div class="toggle-desc">选择语音引擎</div>
+        </div>
+      </div>
+      <div class="mode-select">
+        <div class="mode-btn active" onclick="selectMode(this)">🧠 Piper 离线</div>
+        <div class="mode-btn" onclick="selectMode(this)">☁️ 云端 TTS</div>
+        <div class="mode-btn" onclick="selectMode(this)">📱 系统默认</div>
+      </div>
+      <div class="slider-group">
+        <div class="slider-header">
+          <span class="slider-label">语速</span>
+          <span class="slider-value" id="speedVal">1.0x</span>
+        </div>
+        <div class="slider-wrap">
+          <input type="range" class="slider" min="0.5" max="2" step="0.1" value="1" oninput="document.getElementById('speedVal').textContent=this.value+'x'">
+        </div>
+      </div>
+      <div class="slider-group">
+        <div class="slider-header">
+          <span class="slider-label">音调</span>
+          <span class="slider-value" id="pitchVal">1.0</span>
+        </div>
+        <div class="slider-wrap">
+          <input type="range" class="slider" min="0.5" max="2" step="0.1" value="1" oninput="document.getElementById('pitchVal').textContent=this.value">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">🔍 OCR 识别</div>
+    <div class="card">
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">识别模式</div>
+          <div class="toggle-desc">端侧 + 云端混合</div>
+        </div>
+      </div>
+      <div class="mode-select">
+        <div class="mode-btn" onclick="selectMode(this)">📱 仅端侧</div>
+        <div class="mode-btn active" onclick="selectMode(this)">🔄 混合模式</div>
+        <div class="mode-btn" onclick="selectMode(this)">☁️ 仅云端</div>
+      </div>
+      <input type="text" class="input-field" placeholder="云端 API Key（可选）">
+    </div>
+  </div>
+
+  <div class="section" style="padding-bottom: 100px;">
+    <button class="btn-primary">🚀 启动悬浮窗</button>
+  </div>
+
+  <script>
+    function selectMode(el) {
+      const parent = el.parentElement;
+      const siblings = parent.querySelectorAll('.mode-btn');
+      const isSingle = siblings.length <= 2;
+      if (isSingle) {
+        siblings.forEach(b => b.classList.remove('active'));
+        el.classList.add('active');
+      } else {
+        el.classList.toggle('active');
+      }
+    }
+  </script>
+</body>
+</html>
