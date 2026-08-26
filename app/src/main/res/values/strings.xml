@@ -18,4 +18,6 @@
     <string name="settings">设置</string>
     <string name="rate">语速</string>
     <string name="pitch">音调</string>
+    <string name="capture_notification_title">正在截图</string>
+    <string name="capture_notification_text">请稍候...</string>
 </resources>
