@@ -48,6 +48,9 @@ class SelectionOverlayActivity : ComponentActivity() {
         /** Width of the visible purple lasso trace. */
         internal const val STROKE_LINE_DP = 4f
 
+        /** Width of the mask hole punched along the lasso trace. */
+        internal const val HOLE_STROKE_DP = 24f
+
         /**
          * Pure sampling filter for lasso MOVE events: [candidate] joins the
          * stroke only when it is at least [minDistancePx] away from the last
@@ -254,6 +257,17 @@ class SelectionOverlayActivity : ComponentActivity() {
             style = Paint.Style.FILL
         }
 
+        // Punches the semi-transparent mask away along the lasso trace so the
+        // screenshot underneath stays fully visible (bright band).
+        private val holePaint = Paint().apply {
+            color = Color.BLACK
+            style = Paint.Style.STROKE
+            strokeWidth = HOLE_STROKE_DP * resources.displayMetrics.density
+            strokeCap = Paint.Cap.ROUND
+            strokeJoin = Paint.Join.ROUND
+            xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.DST_OUT)
+        }
+
         private val strokePaint = Paint().apply {
             color = Color.parseColor("#FF7B68EE")
             style = Paint.Style.STROKE
@@ -288,11 +302,16 @@ class SelectionOverlayActivity : ComponentActivity() {
             val dstRect = Rect(0, 0, width, height)
             canvas.drawBitmap(screenshotBitmap, srcRect, dstRect, null)
 
+            // Single offscreen layer: fill the mask, punch the hole along the
+            // trace with DST_OUT, then paint the purple trace on top. One
+            // saveLayer per frame, no per-pixel bitmap work.
+            val saveCount = canvas.saveLayer(0f, 0f, width.toFloat(), height.toFloat(), null)
             canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), overlayPaint)
-
             if (strokePoints.isNotEmpty()) {
+                canvas.drawPath(strokePath, holePaint)
                 canvas.drawPath(strokePath, strokePaint)
             }
+            canvas.restoreToCount(saveCount)
         }
 
         override fun onTouchEvent(event: MotionEvent): Boolean {
