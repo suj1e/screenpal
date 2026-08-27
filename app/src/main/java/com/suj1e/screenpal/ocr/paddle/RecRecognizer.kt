@@ -54,6 +54,9 @@ class RecRecognizer(
         timeSteps: Int,
         numClasses: Int
     ): LineText {
+        require(logits.size % numClasses == 0) {
+            "logits size ${logits.size} not divisible by numClasses=$numClasses (wrong dictionary/model pairing?)"
+        }
         if (timeSteps <= 0) return LineText("", 0f)
 
         val blankId = 0

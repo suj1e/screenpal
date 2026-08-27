@@ -13,6 +13,9 @@ class DbPostProcessor(
     private val binThreshold: Float = 0.3f,
     private val minSide: Int = 3
 ) {
+    companion object {
+        const val UNCLIP_RATIO = 0.15f
+    }
 
     /** Axis-aligned box in original image coordinates; right/bottom inclusive. */
     data class DetectedBox(
@@ -84,11 +87,22 @@ class DbPostProcessor(
             // Drop specks that cannot be text lines.
             if (maxX - minX + 1 < minSide || maxY - minY + 1 < minSide) continue
 
+            // DBNet trains on shrunk regions, so the raw box clips edge glyphs.
+            // Expand each side by UNCLIP_RATIO before mapping back (std. unclip).
+            val boxW = (maxX - minX + 1).toFloat()
+            val boxH = (maxY - minY + 1).toFloat()
+            val padX = boxW * UNCLIP_RATIO / (1 - UNCLIP_RATIO) / 2
+            val padY = boxH * UNCLIP_RATIO / (1 - UNCLIP_RATIO) / 2
+            val exMinX = minX - padX
+            val exMaxX = maxX + padX
+            val exMinY = minY - padY
+            val exMaxY = maxY + padY
+
             // Map back to original coordinates (ratio = scaled / original).
-            val left = (minX / ratioX).roundToInt().coerceIn(0, origWidth - 1)
-            val top = (minY / ratioY).roundToInt().coerceIn(0, origHeight - 1)
-            val right = (maxX / ratioX).roundToInt().coerceIn(0, origWidth - 1)
-            val bottom = (maxY / ratioY).roundToInt().coerceIn(0, origHeight - 1)
+            val left = (exMinX / ratioX).roundToInt().coerceIn(0, origWidth - 1)
+            val top = (exMinY / ratioY).roundToInt().coerceIn(0, origHeight - 1)
+            val right = (exMaxX / ratioX).roundToInt().coerceIn(0, origWidth - 1)
+            val bottom = (exMaxY / ratioY).roundToInt().coerceIn(0, origHeight - 1)
 
             if (left <= right && top <= bottom) {
                 boxes += DetectedBox(left, top, right, bottom)

@@ -60,7 +60,9 @@ class PaddleOcrProvider private constructor(
     }
 
     private fun createSession(modelFile: java.io.File): OrtSession =
-        environment.createSession(modelFile.absolutePath, OrtSession.SessionOptions())
+        OrtSession.SessionOptions().use { options ->
+            environment.createSession(modelFile.absolutePath, options)
+        }
 
     override suspend fun recognize(bitmap: Bitmap): OcrResult = withContext(Dispatchers.Default) {
         ensureInitialized()

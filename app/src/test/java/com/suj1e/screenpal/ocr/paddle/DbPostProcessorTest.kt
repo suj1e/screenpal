@@ -51,16 +51,16 @@ class DbPostProcessorTest {
         val blockA = sorted[0]
         val blockB = sorted[1]
 
-        // +-2px tolerance on every edge.
-        assertEquals(10.0, blockA.left.toDouble(), 2.0)
-        assertEquals(5.0, blockA.top.toDouble(), 2.0)
-        assertEquals(29.0, blockA.right.toDouble(), 2.0)
-        assertEquals(14.0, blockA.bottom.toDouble(), 2.0)
+        // Unclip 0.15 outward expansion (std DBNet post-processing).
+        assertEquals(8.0, blockA.left.toDouble(), 1.0)
+        assertEquals(4.0, blockA.top.toDouble(), 1.0)
+        assertEquals(31.0, blockA.right.toDouble(), 1.0)
+        assertEquals(15.0, blockA.bottom.toDouble(), 1.0)
 
-        assertEquals(50.0, blockB.left.toDouble(), 2.0)
-        assertEquals(20.0, blockB.top.toDouble(), 2.0)
-        assertEquals(79.0, blockB.right.toDouble(), 2.0)
-        assertEquals(34.0, blockB.bottom.toDouble(), 2.0)
+        assertEquals(47.0, blockB.left.toDouble(), 1.0)
+        assertEquals(19.0, blockB.top.toDouble(), 1.0)
+        assertEquals(82.0, blockB.right.toDouble(), 1.0)
+        assertEquals(35.0, blockB.bottom.toDouble(), 1.0)
     }
 
     @Test
@@ -89,10 +89,11 @@ class DbPostProcessorTest {
 
         assertEquals(1, boxes.size)
         val box = boxes[0]
-        assertEquals(20.0, box.left.toDouble(), 2.0)
-        assertEquals(10.0, box.top.toDouble(), 2.0)
-        assertEquals(58.0, box.right.toDouble(), 2.0)
-        assertEquals(28.0, box.bottom.toDouble(), 2.0)
+        // Unclip 0.15: padX=20*0.15/0.85/2≈1.76, padY=10*0.15/0.85/2≈0.88 → /0.5
+        assertEquals(16.0, box.left.toDouble(), 1.0)
+        assertEquals(8.0, box.top.toDouble(), 1.0)
+        assertEquals(61.0, box.right.toDouble(), 1.0)
+        assertEquals(30.0, box.bottom.toDouble(), 1.0)
     }
 
     @Test
@@ -125,5 +126,22 @@ class DbPostProcessorTest {
         )
 
         assertTrue(boxes.isEmpty())
+    }
+
+    @Test
+    fun `boxes expand outward by unclip ratio and clamp to original bounds`() {
+        // 30x30 solid block in a 60x60 prob map; ratio 0.5 => scaled box 15x15 in original.
+        val map = FloatArray(60 * 60) { 0f }
+        for (y in 15 until 45) for (x in 15 until 45) map[y * 60 + x] = 1f
+        val processor = DbPostProcessor(binThreshold = 0.3f, minSide = 4)
+        val boxes = processor.process(map, 60, 60, ratioX = 0.5f, ratioY = 0.5f, origWidth = 120, origHeight = 120)
+
+        assertEquals(1, boxes.size)
+        val b = boxes[0]
+        // Raw box would be [30..60); unclip 0.15 grows each side by 0.15/0.85 of the box,
+        // so left must be strictly below 30 and right above 60 (clamped at 119).
+        assertTrue("expected outward growth, left=${b.left}", b.left < 30)
+        assertTrue("expected outward growth, right=${b.right}", b.right > 60)
+        assertTrue(b.left >= 0 && b.top >= 0 && b.right <= 119 && b.bottom <= 119)
     }
 }
