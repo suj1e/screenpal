@@ -216,8 +216,11 @@ class SelectionOverlayActivity : ComponentActivity() {
                 resultText.text = "识别中…"
                 resultMeta.text = ""
 
-                val result = withContext(Dispatchers.Default) { engine.recognize(cropped) }
-                cropped.recycle()
+                val result = try {
+                    withContext(Dispatchers.Default) { engine.recognize(cropped) }
+                } finally {
+                    cropped.recycle()
+                }
 
                 lastRecognizedText = result.text
                 // 卡片先出 OCR 原文；翻译完成后把主显更新为实际播报文本。

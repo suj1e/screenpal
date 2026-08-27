@@ -92,7 +92,7 @@ class CloudOcrProviderTest {
         assertEquals("doubao-seed-1-6", obj["model"]!!.jsonPrimitive.content)
         assertEquals(0.0, obj["temperature"]!!.jsonPrimitive.content.toDouble(), 1e-9)
         // max_tokens 适度上限，防止失控长输出放大成本
-        assertTrue(obj["max_tokens"]!!.jsonPrimitive.content.toInt() > 0)
+        assertEquals(2048, obj["max_tokens"]!!.jsonPrimitive.content.toInt())
 
         val messages = obj["messages"]!!.jsonArray
         assertEquals(2, messages.size)
