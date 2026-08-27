@@ -154,6 +154,13 @@ fun MainScreen(
                 onApiKeyChange = viewModel::setCloudApiKey
             )
 
+            ToggleCard(
+                title = "中文播报",
+                description = if (state.translationEnabled) "外文自动转译为简体中文播报（火山方舟）" else "已关闭：识别到什么语言就读什么语言",
+                checked = state.translationEnabled,
+                onCheckedChange = viewModel::setTranslationEnabled
+            )
+
             Spacer(modifier = Modifier.height(24.dp))
         }
     }
@@ -267,7 +274,7 @@ fun OcrSettingsCard(
             OutlinedTextField(
                 value = apiKey,
                 onValueChange = onApiKeyChange,
-                label = { Text("Google Cloud API Key（可选）") },
+                label = { Text("火山方舟 API Key（云 OCR + 转译共用）") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )

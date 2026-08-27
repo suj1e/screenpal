@@ -18,7 +18,8 @@ data class UserSettings(
     val ttsRate: Float = 1.0f,
     val ttsPitch: Float = 1.0f,
     val ocrMode: String = "HYBRID",
-    val cloudApiKey: String = ""
+    val cloudApiKey: String = "",
+    val translationEnabled: Boolean = true
 )
 
 class SettingsRepository(private val context: Context) {
@@ -32,7 +33,8 @@ class SettingsRepository(private val context: Context) {
             ttsRate = prefs[KEY_TTS_RATE] ?: 1.0f,
             ttsPitch = prefs[KEY_TTS_PITCH] ?: 1.0f,
             ocrMode = prefs[KEY_OCR_MODE] ?: "HYBRID",
-            cloudApiKey = prefs[KEY_CLOUD_API_KEY] ?: ""
+            cloudApiKey = prefs[KEY_CLOUD_API_KEY] ?: "",
+            translationEnabled = prefs[KEY_TRANSLATION_ENABLED] ?: true
         )
     }
 
@@ -44,7 +46,8 @@ class SettingsRepository(private val context: Context) {
                 ttsRate = prefs[KEY_TTS_RATE] ?: 1.0f,
                 ttsPitch = prefs[KEY_TTS_PITCH] ?: 1.0f,
                 ocrMode = prefs[KEY_OCR_MODE] ?: "HYBRID",
-                cloudApiKey = prefs[KEY_CLOUD_API_KEY] ?: ""
+                cloudApiKey = prefs[KEY_CLOUD_API_KEY] ?: "",
+                translationEnabled = prefs[KEY_TRANSLATION_ENABLED] ?: true
             )
             val updated = current.transform()
             prefs[KEY_FLOATING_WINDOW] = updated.floatingWindowEnabled
@@ -53,6 +56,7 @@ class SettingsRepository(private val context: Context) {
             prefs[KEY_TTS_PITCH] = updated.ttsPitch
             prefs[KEY_OCR_MODE] = updated.ocrMode
             prefs[KEY_CLOUD_API_KEY] = updated.cloudApiKey
+            prefs[KEY_TRANSLATION_ENABLED] = updated.translationEnabled
         }
     }
 
@@ -63,5 +67,6 @@ class SettingsRepository(private val context: Context) {
         private val KEY_TTS_PITCH = floatPreferencesKey("tts_pitch")
         private val KEY_OCR_MODE = stringPreferencesKey("ocr_mode")
         private val KEY_CLOUD_API_KEY = stringPreferencesKey("cloud_api_key")
+        private val KEY_TRANSLATION_ENABLED = booleanPreferencesKey("translationEnabled")
     }
 }

@@ -6,7 +6,7 @@
   - 验收：mock 绿；多行译文拼接正确
 - [x] 3. ChineseBroadcastPipeline + 降级矩阵五用例
   - 验收：5s 超时降级原文；开关生效
-- [ ] 4. 卡片双语 UI + 设置开关（方舟 Key 复用）
+- [x] 4. 卡片双语 UI + 设置开关（方舟 Key 复用）
   - 验收：持久化往返；两种卡片呈现正确
 - [ ] 5. SelectionOverlayActivity 接入 pipeline
   - 验收：既有测试适配全绿

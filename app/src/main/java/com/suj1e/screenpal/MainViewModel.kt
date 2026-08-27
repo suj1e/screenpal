@@ -18,6 +18,7 @@ data class MainUiState(
     val ttsPitch: Float = 1.0f,
     val ocrMode: String = "HYBRID",
     val cloudApiKey: String = "",
+    val translationEnabled: Boolean = true,
     val overlayPermissionGranted: Boolean = false,
     val notificationPermissionGranted: Boolean = false
 ) {
@@ -45,7 +46,8 @@ class MainViewModel(
                     ttsRate = settings.ttsRate,
                     ttsPitch = settings.ttsPitch,
                     ocrMode = settings.ocrMode,
-                    cloudApiKey = settings.cloudApiKey
+                    cloudApiKey = settings.cloudApiKey,
+                    translationEnabled = settings.translationEnabled
                 )
                 maybeAutoStartFloatingService()
             }
@@ -88,7 +90,8 @@ class MainViewModel(
                         ttsRate = ttsRate,
                         ttsPitch = ttsPitch,
                         ocrMode = ocrMode,
-                        cloudApiKey = cloudApiKey
+                        cloudApiKey = cloudApiKey,
+                        translationEnabled = translationEnabled
                     )
                 }
             }
@@ -104,6 +107,8 @@ class MainViewModel(
     fun setOcrMode(mode: String) = update { it.copy(ocrMode = mode) }
 
     fun setCloudApiKey(key: String) = update { it.copy(cloudApiKey = key) }
+
+    fun setTranslationEnabled(enabled: Boolean) = update { it.copy(translationEnabled = enabled) }
 
     /**
      * Start the floating window only when required permissions are granted.
