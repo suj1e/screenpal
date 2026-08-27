@@ -6,7 +6,7 @@
 
 - **悬浮球**：授予悬浮窗权限后启动服务，退出 App 后悬浮球持续显示在桌面和任意应用上层；支持拖拽、点击触发截图。
 - **框选识别**：点击悬浮球 → 自动截取当前屏幕 → 全屏截图上随手圈选区域（画圈/划线，最小 48dp）→ 自动 OCR 识别 → 自动 TTS 播报。
-- **OCR**：端侧 ML Kit 离线识别；可选 Google Cloud Vision 云端增强；混合模式在端侧置信度低于 0.75 时自动走云端。
+- **OCR**：端侧 PaddleOCR（PP-OCRv4 ONNX）离线识别；可选豆包视觉（火山方舟）云端增强；混合模式在端侧置信度低于 0.75 时自动走云端。
 - **TTS 播报**：
   - Piper（默认）：ONNX Runtime 端侧推理，中文女声 `zh_CN-huayan-medium`（约 15MB，首次使用自动从 HuggingFace 下载到应用私有目录，支持断点续传）；
   - Cloud：Google Cloud TTS（Wavenet 中文女声，需 API Key）；
@@ -90,6 +90,6 @@ A：受限于简化音素映射，建议切换到 SYSTEM 引擎对比效果。
 - Jetpack WindowManager + TYPE_APPLICATION_OVERLAY（悬浮窗）
 - MediaProjection + VirtualDisplay + ImageReader（屏幕截取）
 - FileProvider content:// Uri 传递截图（规避 Binder 1MB 限制）
-- ML Kit Text Recognition（端侧 OCR）/ Google Cloud Vision API（云端）
+- PaddleOCR PP-OCRv4（端侧 ONNX）/ 豆包视觉（火山方舟，云端）
 - ONNX Runtime + Piper VITS（端侧神经 TTS）/ Google Cloud TTS（云端）/ 系统 TTS（兜底）
 - DataStore Preferences（配置持久化）+ Ktor Client（网络）
