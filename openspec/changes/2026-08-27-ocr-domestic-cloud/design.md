@@ -7,7 +7,7 @@
 1. **调用**：POST `https://ark.cn-beijing.volces.com/api/v3/chat/completions`，`Authorization: Bearer {ARK_API_KEY}`；messages=[system:"你是 OCR 引擎，只输出图片中的文字，按阅读顺序，不要任何解释", user: image_url(base64 data URL JPEG)]；`model` 常量默认 `doubao-seed-1-6-vision` 级别（**待确认**当前可用型号与定价）。
 2. **解析**：`choices[0].message.content` 按行切分为 `TextBlock`（无坐标——视觉大模型不回精确框；`boundingBox` 置空 Rect，UI 不消费坐标）、`confidence=0.99`。
 3. **成本控制**：JPEG 复用上层压缩（85）；max_tokens 上限；模型 id 常量可换 lite 级。
-4. **清理**：删除百度/Google 两代旧实现残留；`cloudApiKey` 设置标签改「火山方舟 API Key（云端增强 + 翻译共用）」。
+4. **清理**：删除百度/Google 两代旧实现残留；`cloudApiKey` 设置标签改「火山方舟 API Key（仅视觉 OCR 增强）」。
 
 ## 接口 / 数据契约
 

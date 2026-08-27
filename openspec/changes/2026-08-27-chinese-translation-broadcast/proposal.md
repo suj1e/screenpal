@@ -2,14 +2,14 @@
 
 ## Why
 
-产品核心诉求「无论框选的是什么语言，都要播报中文」：在 OCR 与 TTS 之间插入翻译层。翻译实现随用户选型改为**豆包文本大模型（火山方舟）**——翻译质量优于传统机器翻译，且与云 OCR 共用同一方舟 API Key（一套凭据），OpenAI 兼容协议接入最简。结果卡片双语呈现（译文主显、原文小字）。
+产品核心诉求「无论框选的是什么语言，都要播报中文」：在 OCR 与 TTS 之间插入翻译层。翻译实现随用户选型改为**豆包机器翻译大模型（火山引擎语音技术产品线）**——与豆包 TTS 同一控制台同一凭据（AppID/Token 或语音 API Key），一套凭据管 TTS + 翻译两件事；方舟 Key 仅留给视觉 OCR。结果卡片双语呈现（译文主显、原文小字）。
 
 ## What Changes
 
 - 新增 `TranslateService` 接口与 `DoubaoTranslateClient`（方舟 `chat/completions`，system prompt 约束"只输出简体中文译文"，温度 0）
 - 新增 `ChineseBroadcastPipeline`：语言启发式（CJK 占比 ≥50% 直读，零网络）→ 非中文调翻译 → 译文交 `TtsManager.speak`
 - `SelectionOverlayActivity` 接入：播报译文；卡片译文主显 + 原文小字
-- 设置新增「自动翻译播报」开关（默认开）+「火山方舟 API Key」（与云 OCR 共用同一键）
+- 设置新增「自动翻译播报」开关（默认开）；翻译凭据复用豆包语音的 AppID/Token（与 TTS 同源，不新增键）
 - 失败降级：无 Key/网络/超时 5s → 播报原文 + 卡片「翻译不可用」
 - 被否选项：百度翻译（用户否）、本地离线翻译模型（体积质量不匹配 V1）
 

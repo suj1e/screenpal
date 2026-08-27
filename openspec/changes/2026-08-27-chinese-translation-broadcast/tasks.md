@@ -2,7 +2,7 @@
 
 - [ ] 1. ChineseHeuristic + 四用例单测
   - 验收：阈值 0.5 判定正确
-- [ ] 2. DoubaoTranslateClient（方舟请求/解析/错误码）+ 单测
+- [ ] 2. DoubaoTranslateClient（机器翻译大模型请求/解析/错误码，端点凭据=语音线同源）+ 单测
   - 验收：mock 绿；多行译文拼接正确
 - [ ] 3. ChineseBroadcastPipeline + 降级矩阵五用例
   - 验收：5s 超时降级原文；开关生效
