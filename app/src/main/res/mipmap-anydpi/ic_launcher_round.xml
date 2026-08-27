@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- API 24/25 static ROUND launcher icon fallback: identical to the plain
      ic_launcher fallback because the artwork is already a circle on a
-     transparent square. Plain vector only - adaptive-icon needs API 26+. -->
+     transparent square. Plain vector only; adaptive icon XML is for API 26+. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="48dp"
     android:height="48dp"

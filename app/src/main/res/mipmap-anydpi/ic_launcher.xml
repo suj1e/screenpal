@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- API 24/25 static launcher icon fallback: floating-ball purple gradient
      circle with the white waveform composited on top, rendered as a single
-     plain vector (adaptive-icon is only understood from API 26; below that
-     the resource must resolve without a launcher-side mask). -->
+     plain vector. Adaptive icon XML only exists for API 26+; below that
+     the resource must resolve without any launcher-side mask. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="48dp"
     android:height="48dp"
