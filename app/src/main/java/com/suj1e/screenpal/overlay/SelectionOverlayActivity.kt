@@ -16,6 +16,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.Gravity
+import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
 import android.widget.Button
@@ -51,6 +52,9 @@ class SelectionOverlayActivity : ComponentActivity() {
         /** Width of the mask hole punched along the lasso trace. */
         internal const val HOLE_STROKE_DP = 24f
 
+        /** Minimum bounding-box size (width OR height) for a valid selection. */
+        internal const val MIN_SELECTION_SIZE_DP = 48f
+
         /**
          * Pure sampling filter for lasso MOVE events: [candidate] joins the
          * stroke only when it is at least [minDistancePx] away from the last
@@ -72,6 +76,33 @@ class SelectionOverlayActivity : ComponentActivity() {
                 existing
             }
         }
+
+        /**
+         * Pure bounding box of a sampled stroke; null for an empty stroke
+         * (a single point yields a zero-size box, rejected by the size gate).
+         */
+        internal fun computeBounds(points: List<PointF>): RectF? {
+            if (points.isEmpty()) return null
+            var left = Float.MAX_VALUE
+            var top = Float.MAX_VALUE
+            var right = -Float.MAX_VALUE
+            var bottom = -Float.MAX_VALUE
+            for (p in points) {
+                if (p.x < left) left = p.x
+                if (p.y < top) top = p.y
+                if (p.x > right) right = p.x
+                if (p.y > bottom) bottom = p.y
+            }
+            return RectF(left, top, right, bottom)
+        }
+
+        /**
+         * UP gate: a stroke is valid when its bounding box is at least
+         * [minSizePx] wide OR tall, so thin strips still qualify while a
+         * single tap (zero size) does not.
+         */
+        internal fun isSelectionLargeEnough(bounds: RectF, minSizePx: Float): Boolean =
+            bounds.width() >= minSizePx || bounds.height() >= minSizePx
     }
 
     private lateinit var screenshotBitmap: Bitmap
@@ -334,8 +365,7 @@ class SelectionOverlayActivity : ComponentActivity() {
                 MotionEvent.ACTION_UP -> {
                     if (isSelecting) {
                         isSelecting = false
-                        // Bounds judgment lands in a later task; the stroke
-                        // stays visible until the next DOWN clears it.
+                        finishStroke()
                     }
                     return true
                 }
@@ -345,6 +375,28 @@ class SelectionOverlayActivity : ComponentActivity() {
                     return true
                 }
                 else -> return super.onTouchEvent(event)
+            }
+        }
+
+        /**
+         * UP judgment: confirm via bounding box when it clears the minimum
+         * size (48dp wide OR tall); otherwise buzz and clear so the user can
+         * redraw. A single tap has a zero-size box and lands in the reject
+         * branch, so it never triggers recognition.
+         */
+        private fun finishStroke() {
+            val bounds = computeBounds(strokePoints)
+            val minSizePx = MIN_SELECTION_SIZE_DP * resources.displayMetrics.density
+            if (bounds != null && isSelectionLargeEnough(bounds, minSizePx)) {
+                onSelectionConfirmed(
+                    Rect(
+                        bounds.left.toInt(), bounds.top.toInt(),
+                        bounds.right.toInt(), bounds.bottom.toInt()
+                    )
+                )
+            } else {
+                performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                clearStroke()
             }
         }
 
