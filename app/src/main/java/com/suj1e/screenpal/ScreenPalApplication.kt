@@ -9,11 +9,18 @@ import com.suj1e.screenpal.tts.PiperTtsEngine
 import com.suj1e.screenpal.tts.SystemTtsEngine
 import com.suj1e.screenpal.tts.TtsManager
 import com.suj1e.screenpal.util.SettingsRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 val Application.dataStore by preferencesDataStore(name = "settings")
 
-class ScreenPalApplication : Application() {
+// open only so Robolectric tests can subclass and record warmUpTts() wiring.
+open class ScreenPalApplication : Application() {
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     lateinit var settingsRepository: SettingsRepository
         private set
 
@@ -43,6 +50,17 @@ class ScreenPalApplication : Application() {
                 )
             }
         )
+        warmUpTts()
+    }
+
+    /**
+     * Async warm-up of the default Piper TTS engine: triggers model download and
+     * ONNX session creation off the main thread. initialize() is runCatching-safe
+     * (network failure only logs), so failures never crash the app; next launch retries.
+     * open + internal so tests can record that onCreate wires it up.
+     */
+    internal open fun warmUpTts() {
+        appScope.launch { ttsManager.initialize() }
     }
 
     fun setMediaProjection(projection: MediaProjection) {
