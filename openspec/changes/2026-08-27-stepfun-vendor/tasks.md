@@ -1,6 +1,6 @@
 # 2026-08-27-stepfun-vendor 任务清单
 
-- [ ] 1. StepfunTtsEngine（audio/speech）+ 单测
+- [x] 1. StepfunTtsEngine（audio/speech）+ 单测
   - 验收：请求组装/音色/失败映射正确
 - [ ] 2. StepfunOcrProvider + StepfunTranslateClient + 单测
   - 验收：视觉 OCR 与转译解析正确
