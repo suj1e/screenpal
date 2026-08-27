@@ -1,6 +1,6 @@
 # 2026-08-27-tts-domestic-online 任务清单
 
-- [ ] 1. DoubaoTtsEngine（请求组装/合成/播放/stop）+ 单测（JSON 组装、rate/pitch clamp、base64 落盘、error 映射）
+- [x] 1. DoubaoTtsEngine（请求组装/合成/播放/stop）+ 单测（JSON 组装、rate/pitch clamp、base64 落盘、error 映射）
   - 验收：mock 网络单测绿
 - [ ] 2. TtsManager 接线（cloudProviderFactory 返回 TtsEngine?）+ 降级矩阵单测
   - 验收：豆包失败自动 Piper 再 System；既有测试适配全绿
