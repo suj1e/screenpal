@@ -1,5 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android"
-    android:shape="oval">
-    <solid android:color="#FF7B68EE" />
-</shape>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Purple gradient sphere (prototype idle state) -->
+    <item>
+        <shape android:shape="oval">
+            <gradient
+                android:angle="315"
+                android:startColor="#FF6366F1"
+                android:centerColor="#FF7C3AED"
+                android:endColor="#FFA855F7"
+                android:type="linear" />
+        </shape>
+    </item>
+    <!-- Top-left shine highlight -->
+    <item>
+        <shape android:shape="oval">
+            <gradient
+                android:angle="270"
+                android:startColor="#33FFFFFF"
+                android:centerColor="#00000000"
+                android:endColor="#00000000"
+                android:type="radial"
+                android:gradientRadius="0.9"
+                android:centerX="0.3"
+                android:centerY="0.25" />
+        </shape>
+    </item>
+</layer-list>

@@ -309,6 +309,13 @@ class SelectionOverlayActivity : ComponentActivity() {
     private var downY = 0f
     private var isSelecting = false
 
+    override fun onStop() {
+        super.onStop()
+        // User left the selection session (e.g. pressed HOME); bring the ball
+        // back so it never stays missing while the app is idle in background.
+        com.suj1e.screenpal.service.FloatingWindowService.start(this)
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         (application as ScreenPalApplication).ttsManager.stop()
