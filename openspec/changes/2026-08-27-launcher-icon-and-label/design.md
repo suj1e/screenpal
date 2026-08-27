@@ -24,7 +24,7 @@
    android:roundIcon="@mipmap/ic_launcher_round"
    android:label="@string/app_name"
    ```
-   `@string/app_name`（"ScreenPal"）已存在于 strings.xml。
+   `@string/app_name` 值由 "ScreenPal" 改为「**念念**」（用户拍板的中文名；演绎：念给你听 + 悬浮球黏屏。被否候选：屏声听、屏伴、声临其屏）。悬浮球 `contentDescription` 已引用 `@string/app_name`，自动跟随。包名 `com.suj1e.screenpal` 与通知 channel 文案中的 "ScreenPal" 字样本 change 不动，品牌文案统一留待后续 change。
 4. **API 24/25 兜底**：新增 `mipmap-anydpi/ic_launcher{,_round}.xml`，内容为单个 `<vector>`（紫底圆 + 白波纹合成的静态矢量圆图标）。24/25 解析到它，26+ 被 `mipmap-anydpi-v26` 的 adaptive-icon 覆盖。纯矢量、零位图、零新增依赖。
 
 **取舍记录**：
@@ -63,7 +63,7 @@ manifest 改指 `@mipmap/ic_launcher` 即可让 adaptive-icon 生效——但 ba
 
 - **风险：不同启动器对 vector 兜底图标渲染差异**（24/25 老 ROM）：缓解——兜底图标为简单纯色圆+波纹，无 mask 依赖；且 26+ 设备占比 99%+。
 - **风险：通知小图标观感变化**：预期内，见"接口/数据契约"，实机验证即可。
-- **开放问题**：正式品牌图标素材（如需营销级视觉）待用户提供后可无缝替换，本 change 先交付悬浮球同款。
+- **开放问题**：正式品牌图标素材（如需营销级视觉）待用户提供后可无缝替换，本 change 先交付悬浮球同款；App 内通知文案等处残留的 "ScreenPal" 英文字样是否统一改为「念念」，留待后续品牌文案 change。
 
 ## 桌面快捷方式说明（非代码项）
 
