@@ -1,6 +1,6 @@
 # 2026-08-27-chinese-translation-broadcast 任务清单
 
-- [ ] 1. ChineseHeuristic + 四用例单测
+- [x] 1. ChineseHeuristic + 四用例单测
   - 验收：阈值 0.5 判定正确
 - [ ] 2. DoubaoTranslateClient（方舟 chat/completions AI 转译：system/温度/截断）+ 单测
   - 验收：mock 绿；多行译文拼接正确
