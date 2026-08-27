@@ -23,7 +23,7 @@ data class TtsConfig(
 class TtsManager(
     private val context: Context,
     private val piperEngine: TtsEngine,
-    private val cloudProvider: GoogleCloudTtsProvider?,
+    private val cloudProviderFactory: suspend () -> GoogleCloudTtsProvider? = { null },
     private val cloudPlayer: CloudAudioPlayer = CloudAudioPlayer(),
     private val systemEngineProvider: () -> TtsEngine = { SystemTtsEngine(context) },
     private val settingsProvider: suspend () -> TtsConfig
@@ -51,7 +51,7 @@ class TtsManager(
             when (type) {
                 TtsEngineType.PIPER -> speakWithFallback(text, config.rate, config.pitch)
                 TtsEngineType.CLOUD -> {
-                    if (!(cloudProvider != null && speakWithCloud(text, config.rate, config.pitch))) {
+                    if (!speakWithCloud(text, config.rate, config.pitch)) {
                         speakWithSystem(text, config.rate, config.pitch)
                     }
                 }
@@ -68,14 +68,14 @@ class TtsManager(
             activeEngine = piperEngine
         } catch (e: Exception) {
             Log.w(TAG, "Piper speak failed; degrading", e)
-            if (!(cloudProvider != null && speakWithCloud(text, rate, pitch))) {
+            if (!speakWithCloud(text, rate, pitch)) {
                 speakWithSystem(text, rate, pitch)
             }
         }
     }
 
     private suspend fun speakWithCloud(text: String, rate: Float, pitch: Float): Boolean {
-        val provider = cloudProvider ?: return false
+        val provider = cloudProviderFactory() ?: return false
         return try {
             val audio = provider.synthesize(text, rate, pitch)
             if (audio.isEmpty()) return false
@@ -120,13 +120,15 @@ class TtsManager(
         fun create(
             context: Context,
             settingsRepository: SettingsRepository,
-            piperEngine: PiperTtsEngine,
-            cloudApiKey: String?
+            piperEngine: PiperTtsEngine
         ): TtsManager {
             return TtsManager(
                 context = context,
                 piperEngine = piperEngine,
-                cloudProvider = cloudApiKey?.takeIf { it.isNotBlank() }?.let { GoogleCloudTtsProvider(it) },
+                cloudProviderFactory = {
+                    val s = settingsRepository.userSettings.first()
+                    s.cloudApiKey.takeIf { it.isNotBlank() }?.let { GoogleCloudTtsProvider(it) }
+                },
                 settingsProvider = {
                     val s = settingsRepository.userSettings.first()
                     TtsConfig(

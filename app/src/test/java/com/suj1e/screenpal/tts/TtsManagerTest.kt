@@ -63,7 +63,7 @@ class TtsManagerFallbackTest {
         val manager = TtsManager(
             context = mockk(relaxed = true),
             piperEngine = piper,
-            cloudProvider = cloudProvider,
+            cloudProviderFactory = { cloudProvider },
             cloudPlayer = CloudAudioPlayer(),
             systemEngineProvider = { systemFake },
             settingsProvider = { TtsConfig(engineType, 1.0f, 1.0f) }

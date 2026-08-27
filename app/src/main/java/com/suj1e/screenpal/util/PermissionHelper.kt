@@ -12,6 +12,9 @@ import androidx.core.content.ContextCompat
 
 object PermissionHelper {
 
+    const val REQUEST_OVERLAY = 1001
+    const val REQUEST_NOTIFICATION = 1002
+
     fun hasOverlayPermission(context: Context): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             Settings.canDrawOverlays(context)
@@ -33,7 +36,7 @@ object PermissionHelper {
                 Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                 Uri.parse("package:${activity.packageName}")
             )
-            activity.startActivityForResult(intent, 1001)
+            activity.startActivityForResult(intent, REQUEST_OVERLAY)
         }
     }
 
@@ -42,7 +45,7 @@ object PermissionHelper {
             ActivityCompat.requestPermissions(
                 activity,
                 arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
-                1002
+                REQUEST_NOTIFICATION
             )
         }
     }
@@ -54,26 +57,36 @@ object PermissionHelper {
         )
     }
 
-    fun getOemSpecialIntent(context: Context): Intent? {
+    /**
+     * Pure mapping from Build.MANUFACTURER to a normalized brand token.
+     * Kept side-effect free so OEM handling is unit-testable.
+     */
+    fun oemBrandFor(manufacturer: String?): String? {
+        if (manufacturer.isNullOrBlank()) return null
         return when {
-            Build.MANUFACTURER.contains("Xiaomi", ignoreCase = true) -> {
-                Intent("miui.intent.action.APP_PERM_EDITOR").apply {
-                    setClassName(
-                        "com.miui.securitycenter",
-                        "com.miui.permcenter.permissions.AppPermissionsEditorActivity"
-                    )
-                    putExtra("extra_pkgname", context.packageName)
-                }
+            manufacturer.contains("Xiaomi", ignoreCase = true) ||
+                manufacturer.contains("Redmi", ignoreCase = true) -> "XIAOMI"
+            manufacturer.contains("Huawei", ignoreCase = true) ||
+                manufacturer.contains("HONOR", ignoreCase = true) -> "HUAWEI"
+            manufacturer.contains("OPPO", ignoreCase = true) -> "OPPO"
+            manufacturer.contains("vivo", ignoreCase = true) ||
+                manufacturer.contains("iQOO", ignoreCase = true) -> "VIVO"
+            else -> null
+        }
+    }
+
+    fun getOemSpecialIntent(context: Context): Intent? {
+        return when (oemBrandFor(Build.MANUFACTURER)) {
+            "XIAOMI" -> Intent("miui.intent.action.APP_PERM_EDITOR").apply {
+                setClassName(
+                    "com.miui.securitycenter",
+                    "com.miui.permcenter.permissions.AppPermissionsEditorActivity"
+                )
+                putExtra("extra_pkgname", context.packageName)
             }
-            Build.MANUFACTURER.contains("Huawei", ignoreCase = true) -> {
-                Intent("com.huawei.systemmanager.optimize.process.ProtectActivity")
-            }
-            Build.MANUFACTURER.contains("OPPO", ignoreCase = true) -> {
-                Intent("oppo.intent.action.OPPO_PERMISSION")
-            }
-            Build.MANUFACTURER.contains("vivo", ignoreCase = true) -> {
-                Intent("permission.intent.action.softdetail")
-            }
+            "HUAWEI" -> Intent("com.huawei.systemmanager.optimize.process.ProtectActivity")
+            "OPPO" -> Intent("oppo.intent.action.OPPO_PERMISSION")
+            "VIVO" -> Intent("permission.intent.action.softdetail")
             else -> null
         }
     }

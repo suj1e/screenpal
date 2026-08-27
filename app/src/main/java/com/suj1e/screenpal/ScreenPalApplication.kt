@@ -4,12 +4,20 @@ import android.app.Application
 import android.media.projection.MediaProjection
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
+import com.suj1e.screenpal.tts.GoogleCloudTtsProvider
+import com.suj1e.screenpal.tts.PiperTtsEngine
+import com.suj1e.screenpal.tts.SystemTtsEngine
+import com.suj1e.screenpal.tts.TtsManager
 import com.suj1e.screenpal.util.SettingsRepository
+import kotlinx.coroutines.flow.first
 
 val Application.dataStore by preferencesDataStore(name = "settings")
 
 class ScreenPalApplication : Application() {
     lateinit var settingsRepository: SettingsRepository
+        private set
+
+    lateinit var ttsManager: TtsManager
         private set
 
     var mediaProjection: MediaProjection? = null
@@ -18,6 +26,23 @@ class ScreenPalApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         settingsRepository = SettingsRepository(this)
+        ttsManager = TtsManager(
+            context = this,
+            piperEngine = PiperTtsEngine(this),
+            cloudProviderFactory = {
+                val s = settingsRepository.userSettings.first()
+                s.cloudApiKey.takeIf { it.isNotBlank() }?.let { GoogleCloudTtsProvider(it) }
+            },
+            systemEngineProvider = { SystemTtsEngine(this) },
+            settingsProvider = {
+                val s = settingsRepository.userSettings.first()
+                com.suj1e.screenpal.tts.TtsConfig(
+                    engineType = com.suj1e.screenpal.tts.TtsEngineType.from(s.ttsEngine),
+                    rate = s.ttsRate,
+                    pitch = s.ttsPitch
+                )
+            }
+        )
     }
 
     fun setMediaProjection(projection: MediaProjection) {
