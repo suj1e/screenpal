@@ -6,7 +6,7 @@
 
 ## What Changes
 
-- 重写 `CloudOcrProvider`：调火山方舟 `chat/completions`（doubao-vision 模型，image 为 base64 data URL，prompt 要求按阅读顺序输出全部文字）
+- 重写 `CloudOcrProvider` 为豆包实现（火山方舟 `chat/completions`，doubao-vision 模型，image base64 data URL）；云引擎按用户选定服务商路由（并列可选，StepFun 实现见 stepfun-vendor change）
 - `CloudOcrConfig` 收敛为 `arkApiKey` + 模型 id（常量，默认 doubao-vision-lite 级别以控成本，**待确认**可选型号）
 - `OcrResult.confidence` 置 0.99（云结果视为可信，Hybrid 语义不变）
 - 设置键 `cloudApiKey` 语义改为「火山方舟 API Key」（视觉 OCR 增强 + AI 转译翻译共用）

@@ -7,7 +7,7 @@ TTS 去 Google 化并接国内头部方案：选**豆包语音合成（火山引
 ## What Changes
 
 - 新增 `DoubaoTtsEngine`（实现 `TtsEngine`）：火山语音 HTTP API（`openspeech.bytedance.com/api/v1/tts`，AppID + Access Token 鉴权）合成 MP3 → MediaPlayer 播放（复用 Piper 播放路径）
-- 降级链重排：**豆包在线 → Piper → System**（`TtsEngineType.CLOUD` 语义改为豆包）
+- 在线引擎按**用户选定服务商**路由（豆包/StepFun 并列可选，选择器由 stepfun-vendor change 引入；本 change 先落地豆包实现与路由挂点）；选定失败 → Piper → System
 - 删除 `GoogleCloudTtsProvider`；设置文案改「豆包在线语音（火山引擎）」+ 音色（语音包）下拉
 - 音色选择：`UserSettings.ttsVoice: String`（voice_type，默认豆包中文女声，合法值**待确认**以火山文档为准）
 - 被否选项：百度在线 TTS（用户否）、讯飞离线包（商用授权）、PaddleSpeech 端侧（音质/体积）
