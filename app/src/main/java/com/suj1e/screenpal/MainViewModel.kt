@@ -2,10 +2,14 @@ package com.suj1e.screenpal
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.suj1e.screenpal.service.FloatingWindowService
 import com.suj1e.screenpal.util.PermissionHelper
 import com.suj1e.screenpal.util.SettingsRepository
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,6 +22,9 @@ data class MainUiState(
     val ttsPitch: Float = 1.0f,
     val ocrMode: String = "HYBRID",
     val cloudApiKey: String = "",
+    val volcanoSpeechAppId: String = "",
+    val volcanoSpeechToken: String = "",
+    val ttsVoice: String = "BV001_streaming",
     val overlayPermissionGranted: Boolean = false,
     val notificationPermissionGranted: Boolean = false
 ) {
@@ -30,14 +37,19 @@ data class MainUiState(
 }
 
 class MainViewModel(
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    // Injectable so Robolectric tests can swap Dispatchers.Main (whose
+    // viewModelScope dispatching never lands under the shadow looper).
+    private val mainDispatcher: CoroutineDispatcher = Dispatchers.Main.immediate
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MainUiState())
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
 
+    private val vmScope = CoroutineScope(SupervisorJob() + mainDispatcher)
+
     init {
-        viewModelScope.launch {
+        vmScope.launch {
             settingsRepository.userSettings.collect { settings ->
                 _uiState.value = _uiState.value.copy(
                     floatingWindowEnabled = settings.floatingWindowEnabled,
@@ -45,7 +57,10 @@ class MainViewModel(
                     ttsRate = settings.ttsRate,
                     ttsPitch = settings.ttsPitch,
                     ocrMode = settings.ocrMode,
-                    cloudApiKey = settings.cloudApiKey
+                    cloudApiKey = settings.cloudApiKey,
+                    volcanoSpeechAppId = settings.volcanoSpeechAppId,
+                    volcanoSpeechToken = settings.volcanoSpeechToken,
+                    ttsVoice = settings.ttsVoice
                 )
                 maybeAutoStartFloatingService()
             }
@@ -79,21 +94,46 @@ class MainViewModel(
     }
 
     private fun update(transform: (MainUiState) -> MainUiState) {
-        viewModelScope.launch {
+        vmScope.launch {
+            // Merge onto the persisted current values: consecutive rapid updates
+            // (e.g. typing AppID then Token) each see fresh data, so no field is
+            // lost to a stale in-memory uiState snapshot.
             settingsRepository.update {
-                with(transform(_uiState.value)) {
-                    com.suj1e.screenpal.util.UserSettings(
-                        floatingWindowEnabled = floatingWindowEnabled,
-                        ttsEngine = ttsEngine,
-                        ttsRate = ttsRate,
-                        ttsPitch = ttsPitch,
-                        ocrMode = ocrMode,
-                        cloudApiKey = cloudApiKey
-                    )
-                }
+                toUiState().let(transform).toUserSettings()
             }
         }
     }
+
+    private fun com.suj1e.screenpal.util.UserSettings.toUiState(): MainUiState {
+        val state = _uiState.value
+        return MainUiState(
+            floatingWindowEnabled = floatingWindowEnabled,
+            ttsEngine = ttsEngine,
+            ttsRate = ttsRate,
+            ttsPitch = ttsPitch,
+            ocrMode = ocrMode,
+            cloudApiKey = cloudApiKey,
+            volcanoSpeechAppId = volcanoSpeechAppId,
+            volcanoSpeechToken = volcanoSpeechToken,
+            ttsVoice = ttsVoice,
+            // Runtime-only permission badges are not persisted; keep current view.
+            overlayPermissionGranted = state.overlayPermissionGranted,
+            notificationPermissionGranted = state.notificationPermissionGranted
+        )
+    }
+
+    private fun MainUiState.toUserSettings(): com.suj1e.screenpal.util.UserSettings =
+        com.suj1e.screenpal.util.UserSettings(
+            floatingWindowEnabled = floatingWindowEnabled,
+            ttsEngine = ttsEngine,
+            ttsRate = ttsRate,
+            ttsPitch = ttsPitch,
+            ocrMode = ocrMode,
+            cloudApiKey = cloudApiKey,
+            volcanoSpeechAppId = volcanoSpeechAppId,
+            volcanoSpeechToken = volcanoSpeechToken,
+            ttsVoice = ttsVoice
+        )
 
     fun setTtsEngine(engine: String) = update { it.copy(ttsEngine = engine) }
 
@@ -104,6 +144,12 @@ class MainViewModel(
     fun setOcrMode(mode: String) = update { it.copy(ocrMode = mode) }
 
     fun setCloudApiKey(key: String) = update { it.copy(cloudApiKey = key) }
+
+    fun setVolcanoAppId(appId: String) = update { it.copy(volcanoSpeechAppId = appId) }
+
+    fun setVolcanoToken(token: String) = update { it.copy(volcanoSpeechToken = token) }
+
+    fun setTtsVoice(voice: String) = update { it.copy(ttsVoice = voice) }
 
     /**
      * Start the floating window only when required permissions are granted.
@@ -124,4 +170,9 @@ class MainViewModel(
 
     private fun setFloatingWindowEnabled(enabled: Boolean) =
         update { it.copy(floatingWindowEnabled = enabled) }
+
+    override fun onCleared() {
+        vmScope.cancel()
+        super.onCleared()
+    }
 }

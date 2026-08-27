@@ -4,7 +4,7 @@
   - 验收：mock 网络单测绿
 - [x] 2. TtsManager 接线（cloudProviderFactory 返回 TtsEngine?）+ 降级矩阵单测
   - 验收：豆包失败自动 Piper 再 System；既有测试适配全绿
-- [ ] 3. 设置三键（AppID/Token/音色）+ UI（文案改「豆包在线语音」+ 下拉）
+- [x] 3. 设置三键（AppID/Token/音色）+ UI（文案改「豆包在线语音」+ 下拉）
   - 验收：持久化往返；主界面显示正确
 - [ ] 4. 删除 GoogleCloudTtsProvider 及全部引用
   - 验收：grep 无残留；构建通过

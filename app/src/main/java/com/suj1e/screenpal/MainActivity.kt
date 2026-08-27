@@ -142,9 +142,15 @@ fun MainScreen(
                 engine = state.ttsEngine,
                 rate = state.ttsRate,
                 pitch = state.ttsPitch,
+                volcanoAppId = state.volcanoSpeechAppId,
+                volcanoToken = state.volcanoSpeechToken,
+                ttsVoice = state.ttsVoice,
                 onEngineChange = viewModel::setTtsEngine,
                 onRateChange = viewModel::setTtsRate,
-                onPitchChange = viewModel::setTtsPitch
+                onPitchChange = viewModel::setTtsPitch,
+                onVolcanoAppIdChange = viewModel::setVolcanoAppId,
+                onVolcanoTokenChange = viewModel::setVolcanoToken,
+                onTtsVoiceChange = viewModel::setTtsVoice
             )
 
             OcrSettingsCard(
@@ -219,9 +225,15 @@ fun TtsSettingsCard(
     engine: String,
     rate: Float,
     pitch: Float,
+    volcanoAppId: String,
+    volcanoToken: String,
+    ttsVoice: String,
     onEngineChange: (String) -> Unit,
     onRateChange: (Float) -> Unit,
-    onPitchChange: (Float) -> Unit
+    onPitchChange: (Float) -> Unit,
+    onVolcanoAppIdChange: (String) -> Unit,
+    onVolcanoTokenChange: (String) -> Unit,
+    onTtsVoiceChange: (String) -> Unit
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -229,8 +241,32 @@ fun TtsSettingsCard(
             HorizontalDivider()
 
             EngineOptionRow("PIPER", "Piper 离线（推荐，需下载模型）", engine, onEngineChange)
-            EngineOptionRow("CLOUD", "云端 Google Cloud TTS（需 API Key）", engine, onEngineChange)
+            EngineOptionRow("CLOUD", "豆包在线语音（火山引擎，需 AppID+Token）", engine, onEngineChange)
             EngineOptionRow("SYSTEM", "系统 TTS（兜底）", engine, onEngineChange)
+
+            if (engine.equals("CLOUD", ignoreCase = true)) {
+                OutlinedTextField(
+                    value = volcanoAppId,
+                    onValueChange = onVolcanoAppIdChange,
+                    label = { Text("火山引擎 AppID") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = volcanoToken,
+                    onValueChange = onVolcanoTokenChange,
+                    label = { Text("火山引擎 Token") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = ttsVoice,
+                    onValueChange = onTtsVoiceChange,
+                    label = { Text("音色（voice_type，默认 BV001_streaming）") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+            }
 
             Text("语速：%.1fx".format(rate))
             Slider(value = rate, onValueChange = onRateChange, valueRange = 0.5f..2.0f, steps = 5)

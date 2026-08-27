@@ -10,6 +10,22 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
 /**
+ * Pure-JVM defaults contract: the user-visible defaults for the Volcano (豆包)
+ * TTS keys. (DataStore-dependent tests are order-fragile because the
+ * preferencesDataStore singleton is shared across Robolectric tests in one JVM.)
+ */
+class SettingsDefaultsTest {
+
+    @Test
+    fun volcanoDefaults_emptyCredentials_andBv001Voice() {
+        val defaults = UserSettings()
+        assertEquals("", defaults.volcanoSpeechAppId)
+        assertEquals("", defaults.volcanoSpeechToken)
+        assertEquals("BV001_streaming", defaults.ttsVoice)
+    }
+}
+
+/**
  * Persistence round-trip for the Volcano (豆包) TTS settings keys
  * (2026-08-27-tts-domestic-online): volcanoSpeechAppId / volcanoSpeechToken /
  * ttsVoice must survive an update() cycle (update rewrites every key, so a
@@ -20,14 +36,8 @@ import org.robolectric.annotation.Config
 class SettingsRepositoryTest {
 
     @Test
-    fun volcanoKeys_roundTrip_andDefaults() = runBlocking<Unit> {
+    fun volcanoKeys_roundTrip() = runBlocking<Unit> {
         val repository = SettingsRepository(RuntimeEnvironment.getApplication())
-
-        // Defaults: empty credentials, BV001_streaming voice.
-        val defaults = repository.userSettings.first()
-        assertEquals("", defaults.volcanoSpeechAppId)
-        assertEquals("", defaults.volcanoSpeechToken)
-        assertEquals("BV001_streaming", defaults.ttsVoice)
 
         repository.update {
             copy(
