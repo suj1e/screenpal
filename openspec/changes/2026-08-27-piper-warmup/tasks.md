@@ -1,6 +1,6 @@
 # 2026-08-27-piper-warmup 任务清单
 
-- [ ] 1. 接线测试先行：`ScreenPalApplicationTest` 新增 Robolectric 测试（子类覆写 `warmUpTts` 断言 onCreate 调用）
+- [x] 1. 接线测试先行：`ScreenPalApplicationTest` 新增 Robolectric 测试（子类覆写 `warmUpTts` 断言 onCreate 调用）
   - 验收：当前代码无 warmUpTts 时测试红（编译失败或断言失败）
 - [ ] 2. 实现 `ScreenPalApplication.warmUpTts()`（internal open）+ `appScope`（SupervisorJob+IO）+ onCreate 调用 `appScope.launch { ttsManager.initialize() }`
   - 验收：接线测试绿；不阻塞主线程；initialize 失败不崩溃
