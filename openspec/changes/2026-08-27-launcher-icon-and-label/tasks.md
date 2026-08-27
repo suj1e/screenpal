@@ -1,6 +1,6 @@
 # 2026-08-27-launcher-icon-and-label 任务清单
 
-- [ ] 1. 重画图标 drawable：`ic_launcher_background.xml`（108dp 紫渐变 + 高光 vector）与 `ic_launcher_foreground.xml`（108dp 白色声波纹，66dp 安全区内）
+- [x] 1. 重画图标 drawable：`ic_launcher_background.xml`（108dp 紫渐变 + 高光 vector）与 `ic_launcher_foreground.xml`（108dp 白色声波纹，66dp 安全区内）
   - 验收：两文件为 `<vector>` 非 selector；渐变色值与 bg_floating_ball 一致（#6366F1/#7C3AED/#A855F7）；波纹包络坐标落在 21–87dp 安全区
 - [ ] 2. 新增 API 24/25 兜底：`mipmap-anydpi/ic_launcher.xml`、`mipmap-anydpi/ic_launcher_round.xml`（纯 vector 静态圆图标）
   - 验收：minSdk 24 下资源链接通过；单测断言兜底文件存在

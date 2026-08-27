@@ -1,4 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
-<selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="@android:color/transparent" />
-</selector>
+<!-- Launcher icon background layer: floating-ball purple gradient over the
+     full 108dp adaptive-icon canvas, plus the top-left shine highlight.
+     Replicates drawable/bg_floating_ball.xml (linear #6366F1 -> #7C3AED ->
+     #A855F7 left-top to right-down, radial white shine at 30%/25%). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Purple gradient sphere fill, diagonal left-top -> right-bottom -->
+    <path
+        android:pathData="M0,0 L108,0 L108,108 L0,108 Z">
+        <gradient
+            android:type="linear"
+            android:startX="0"
+            android:startY="0"
+            android:endX="108"
+            android:endY="108"
+            android:startColor="#FF6366F1"
+            android:centerColor="#FF7C3AED"
+            android:endColor="#FFA855F7" />
+    </path>
+
+    <!-- Top-left shine highlight, mirrors bg_floating_ball.xml radial glow -->
+    <path
+        android:pathData="M0,0 L108,0 L108,108 L0,108 Z">
+        <gradient
+            android:type="radial"
+            android:centerX="32.4"
+            android:centerY="27"
+            android:gradientRadius="97.2"
+            android:startColor="#33FFFFFF"
+            android:centerColor="#00000000"
+            android:endColor="#00000000" />
+    </path>
+</vector>
