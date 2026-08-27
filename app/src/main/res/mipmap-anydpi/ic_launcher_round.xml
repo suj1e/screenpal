@@ -3,6 +3,7 @@
      ic_launcher fallback because the artwork is already a circle on a
      transparent square. Plain vector only; adaptive icon XML is for API 26+. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="48dp"
     android:height="48dp"
     android:viewportWidth="108"
@@ -11,15 +12,17 @@
     <!-- Purple gradient round base, same palette as bg_floating_ball.xml -->
     <path
         android:pathData="M0,54 A54,54 0 1,0 108,54 A54,54 0 1,0 0,54 Z">
-        <gradient
-            android:type="linear"
-            android:startX="0"
-            android:startY="0"
-            android:endX="108"
-            android:endY="108"
-            android:startColor="#FF6366F1"
-            android:centerColor="#FF7C3AED"
-            android:endColor="#FFA855F7" />
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="0"
+                android:startY="0"
+                android:endX="108"
+                android:endY="108"
+                android:startColor="#FF6366F1"
+                android:centerColor="#FF7C3AED"
+                android:endColor="#FFA855F7" />
+        </aapt:attr>
     </path>
 
     <!-- White waveform bars (ic_ball_waveform.xml, scale 2.5 / translate 24) -->

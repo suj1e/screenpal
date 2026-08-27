@@ -8,5 +8,6 @@
   - 验收：`AndroidManifestTest` 新增断言通过（icon/roundIcon/label 三属性存在，application icon 不再直接引用 drawable 前景层）；strings.xml 含「念念」
 - [x] 4. 单元测试补充：`AndroidManifestTest` 增加图标资源断言 + 兜底资源存在性断言
   - 验收：`gradle testDebugUnitTest` 全绿
-- [ ] 5. 模拟器视觉验收：构建安装 → 抽屉图标为紫底白波纹、名称显示「念念」、前台服务通知栏小图标可见 → 长按拖拽可在桌面创建快捷方式
+- [x] 5. 模拟器视觉验收：构建安装 → 抽屉图标为紫底白波纹、名称显示「念念」、前台服务通知栏小图标可见 → 长按拖拽可在桌面创建快捷方式
   - 验收：截图对照 prototypes/02_floating_window.html 悬浮球视觉一致
+  - 补充（验收发现的实施修复）：`<gradient>` 裸置于 `<path>` 被 AAPT2 静默丢弃导致图标黑底，三处改为 `<aapt:attr name="android:fillColor">` 包装，并补测试断言钉住该写法契约；复跑 37 项单测全绿 + 模拟器复验通过

@@ -126,6 +126,12 @@ class AndroidManifestTest {
         listOf("#FF6366F1", "#FF7C3AED", "#FFA855F7").forEach { color ->
             assertTrue("Background gradient should use floating ball color $color", content.contains(color))
         }
+        // A bare <gradient> child of <path> is silently dropped by AAPT2 (icon
+        // renders without its fill); gradients must be aapt:attr-wrapped.
+        assertTrue(
+            "Gradient must be wrapped in <aapt:attr name=\"android:fillColor\"> to survive AAPT2",
+            content.contains("<aapt:attr name=\"android:fillColor\">")
+        )
     }
 
     @Test
@@ -224,6 +230,13 @@ class AndroidManifestTest {
                 "mipmap-anydpi/$name must NOT use adaptive-icon (unsupported below API 26)",
                 content.contains("adaptive-icon")
             )
+            // Same AAPT2 rule as the background layer: no bare <gradient>.
+            if (content.contains("<gradient")) {
+                assertTrue(
+                    "mipmap-anydpi/$name gradient must be wrapped in <aapt:attr name=\"android:fillColor\">",
+                    content.contains("<aapt:attr name=\"android:fillColor\">")
+                )
+            }
         }
     }
 
