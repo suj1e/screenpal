@@ -9,12 +9,14 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /**
  * Unit tests for lasso UP judgment: bounding box of the sampled stroke and
  * the minimum-size gate (48dp wide OR tall; single taps are invalid).
  */
 @RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
 class SelectionLassoBoundsTest {
 
     private val minSizePx = SelectionOverlayActivity.MIN_SELECTION_SIZE_DP * 2f // density=2 -> 96px

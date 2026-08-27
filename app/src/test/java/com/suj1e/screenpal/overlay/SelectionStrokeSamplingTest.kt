@@ -6,12 +6,14 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /**
  * Unit tests for the lasso stroke sampling filter (8dp minimum distance).
  * Pure-function tests: no Activity instance, no rendering involved.
  */
 @RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
 class SelectionStrokeSamplingTest {
 
     private val minDistancePx = SelectionOverlayActivity.MIN_SAMPLE_DISTANCE_DP * 2f // density=2 -> 16px
