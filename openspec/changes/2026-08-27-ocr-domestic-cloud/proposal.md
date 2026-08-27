@@ -9,7 +9,7 @@
 - 重写 `CloudOcrProvider`：调火山方舟 `chat/completions`（doubao-vision 模型，image 为 base64 data URL，prompt 要求按阅读顺序输出全部文字）
 - `CloudOcrConfig` 收敛为 `arkApiKey` + 模型 id（常量，默认 doubao-vision-lite 级别以控成本，**待确认**可选型号）
 - `OcrResult.confidence` 置 0.99（云结果视为可信，Hybrid 语义不变）
-- 设置键 `cloudApiKey` 语义改为「火山方舟 API Key」（仅视觉 OCR；翻译已随语音线凭据走）
+- 设置键 `cloudApiKey` 语义改为「火山方舟 API Key」（视觉 OCR 增强 + AI 转译翻译共用）
 - 移除 Google Vision 与（先前方案中的）百度 OCR 设定；Hybrid 决策阈值 0.75 不变
 - 被否选项：火山传统 OCR API（鉴权签名复杂、能力同质）、百度 OCR（用户否）
 

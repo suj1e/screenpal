@@ -5,10 +5,12 @@
 **图示**：[diagrams/translation-broadcast-flow.svg](diagrams/translation-broadcast-flow.svg)
 
 1. **语言启发式**：`ChineseHeuristic.isMostlyChinese(text)` = CJK 表意字符 / 非空白字符 ≥ 0.5；纯数字/符号走中文路径。
-2. **DoubaoTranslateClient**：调火山语音技术「机器翻译大模型」API（凭据与 TTS 同源：`volcanoSpeechAppId`/`volcanoSpeechToken`，具体端点/请求体**待确认**以 docs.volcengine.com/docs/6561 机器翻译章节为准——文档目录实证该服务属语音产品线）；翻译失败映射 `TranslationException`。q 截断 6000 字节。
+2. **DoubaoTranslateClient（AI 转译）**：POST 方舟 `chat/completions`，`Authorization: Bearer {cloudApiKey}`（与云 OCR 同一把）；system="你是转译引擎。将用户内容转写为简体中文：外文翻译为自然中文；保留必要专名并在括号内给出简短中文说明。只输出转写结果，不解释。"，temperature=0，model 常量（doubao 文本/多模态均可，**待确认**型号）；q 截断 6000 字节。
 3. **ChineseBroadcastPipeline**：`broadcast(ocrText, tts)` → 开关关/中文 → Direct；否则 5s 超时翻译，成功 `tts.speak(译文)`→Translated，失败 `tts.speak(原文)`→FallbackOriginal。
 4. **卡片**：主显译文（翻译发生时）/原文；meta 追加原文小字或「翻译不可用」。
-5. **设置**：`translationEnabled`（默认 true）；翻译凭据复用 TTS 的 `volcanoSpeechAppId`/`volcanoSpeechToken`（不新增键）。
+5. **设置**：`translationEnabled`（默认 true）；凭据复用 `cloudApiKey`（方舟）。
+
+**扩展口（本期不做）**：prompt 已按"转译"语义设计，后续可加「朗读/讲解」模式（讲解=对文本做通俗解释而非直译），仅改 system prompt。
 
 ## 接口 / 数据契约
 
@@ -35,7 +37,7 @@
 ## 风险与 Trade-off
 
 - **风险：大模型翻译"再创作"**——system 强约束 + temperature 0；关键场景开关逃生
-- **风险：机器翻译 API 计费/配额**——低频（手动框选）+ 短文本，成本可控；**待确认**语音线翻译服务定价
+- **风险：方舟 token 计费**——低频（手动框选）+ 短文本，成本可控；**待确认**方舟定价
 - **风险：延迟 1–2s 感知**——卡片先出 OCR 文本，翻译完成后更新主显（异步不阻塞卡片）
 - **开放问题**：无
 
