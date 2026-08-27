@@ -276,12 +276,12 @@ class SelectionOverlayActivity : ComponentActivity() {
                     Log.w(TAG, "Cloud OCR without API key; degrading to local")
                     PaddleOcrProvider.getInstance(app)
                 } else {
-                    CloudOcrProvider(CloudOcrConfig(apiKey))
+                    CloudOcrProvider(CloudOcrConfig(arkApiKey = apiKey))
                 }
                 OcrMode.HYBRID -> HybridOcrEngine(
                     PaddleOcrProvider.getInstance(app),
                     cloudProvider = apiKey.takeIf { it.isNotBlank() }?.let {
-                        CloudOcrProvider(CloudOcrConfig(it))
+                        CloudOcrProvider(CloudOcrConfig(arkApiKey = it))
                     },
                     confidenceThreshold = 0.75f
                 )

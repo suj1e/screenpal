@@ -2,7 +2,7 @@
 
 - [x] 1. CloudOcrProvider 重写（方舟 vision：请求组装/解析）+ 单测
   - 验收：mock 单测绿；多行文本正确切分；空 content 异常
-- [ ] 2. 设置收敛：cloudApiKey 标签改「火山方舟 API Key」+ CloudOcrConfig 单字段
+- [x] 2. 设置收敛：cloudApiKey 标签改「火山方舟 API Key」+ CloudOcrConfig 单字段
   - 验收：设置往返；UI 文案正确
 - [ ] 3. 旧实现残留清理（Google/百度）
   - 验收：grep 无 vision.googleapis / aip.baidubce OCR 残留

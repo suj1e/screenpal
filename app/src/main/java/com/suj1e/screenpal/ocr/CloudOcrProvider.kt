@@ -25,9 +25,9 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import java.io.ByteArrayOutputStream
 
+/** 云 OCR 配置：单字段收敛为火山方舟 API Key（与 AI 转译共用同一把 Key）。 */
 data class CloudOcrConfig(
-    val apiKey: String,
-    val timeoutMs: Long = 10000
+    val arkApiKey: String
 )
 
 /**
@@ -49,11 +49,11 @@ class CloudOcrProvider(
 ) : OcrEngine {
 
     override suspend fun recognize(bitmap: Bitmap): OcrResult {
-        if (config.apiKey.isBlank()) throw IllegalStateException("云 OCR 缺少火山方舟 API Key")
+        if (config.arkApiKey.isBlank()) throw IllegalStateException("云 OCR 缺少火山方舟 API Key")
 
         val response = try {
             httpClient.post(ENDPOINT) {
-                header(HttpHeaders.Authorization, "Bearer ${config.apiKey}")
+                header(HttpHeaders.Authorization, "Bearer ${config.arkApiKey}")
                 contentType(ContentType.Application.Json)
                 setBody(buildRequestJson(bitmap.toJpegDataUrl()))
             }
