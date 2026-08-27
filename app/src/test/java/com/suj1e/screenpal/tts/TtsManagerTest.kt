@@ -162,3 +162,13 @@ class TtsManagerInitializeContractTest {
         coVerify(exactly = 1) { piper.initialize() }
     }
 }
+
+class ModelDownloaderConfigUrlContractTest {
+    @Test
+    fun configUrl_targetsUpstreamOnnxJsonName() {
+        // Regression: upstream config is "<model>.onnx.json"; the old URL
+        // ("<model>.json") 404s and Piper initialization always failed.
+        val url = com.suj1e.screenpal.tts.ModelDownloader.configUrl()
+        assertTrue("config URL must point to the upstream .onnx.json name", url.endsWith("zh_CN-huayan-medium.onnx.json"))
+    }
+}

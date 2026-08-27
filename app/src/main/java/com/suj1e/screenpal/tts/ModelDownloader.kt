@@ -90,6 +90,9 @@ class ModelDownloader(
         const val BUFFER_SIZE_BYTES = 64 * 1024
 
         fun modelUrl(): String = MODEL_BASE_URL + MODEL_FILE_NAME
-        fun configUrl(): String = MODEL_BASE_URL + CONFIG_FILE_NAME
+
+        // Upstream config is named "<model>.onnx.json"; the local copy keeps
+        // CONFIG_FILE_NAME (without .onnx) so existing installs stay valid.
+        fun configUrl(): String = MODEL_BASE_URL + MODEL_FILE_NAME + ".json"
     }
 }

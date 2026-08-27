@@ -114,9 +114,14 @@ class PiperTtsEngine(
                             "scales" to scalesTensor
                         )
                     ).use { results ->
-                        @Suppress("UNCHECKED_CAST")
-                        val output = results[0].value as Array<Array<FloatArray>>
-                        return output[0][0].map { it * 32767f }.map { it.toInt().toShort() }.toShortArray()
+                        // Read the flat sample buffer instead of casting a fixed
+                        // dimensionality: voice exports differ (this one emits
+                        // [1,1,1,T], older piper models [1,1,T]).
+                        val tensor = results[0] as OnnxTensor
+                        val samples = tensor.floatBuffer
+                        return ShortArray(samples.remaining()) { i ->
+                            (samples.get(i) * 32767f).toInt().toShort()
+                        }
                     }
                 }
             }

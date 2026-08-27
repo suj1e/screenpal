@@ -63,6 +63,12 @@
 - **风险备忘（review S1，当前不修）**：`runCatching` 会把 CancellationException 当普通失败记日志；今日 appScope 无任何取消触发点属死路径，未来若引入作用域取消机制，须先改为对 CE 重新抛出的封装。
 - **开放问题**：无。
 
+## 验收发现（scope 扩展记录）
+
+任务 4 模拟器验收挖出同链路两个额外缺陷，均已修复：
+1. **configUrl 404**：upstream 配置文件名为 `zh_CN-huayan-medium.onnx.json`，原代码拼 `CONFIG_FILE_NAME`（`.json`）永远 404——即使网络正常 Piper 也无法完成下载。修复：远端 URL 拼模型名 + `.json`，本地文件名不变（兼容既有安装）；补 configUrl 契约测试。
+2. **synthesize 维度强转崩溃**：`ClassCastException: float[][][][] cannot be cast to float[][][]`——本 voice 导出张量为 4 维，代码硬转 3 维。修复：改读 OnnxTensor 扁平 FloatBuffer，不依赖维度数（ONNX 原生依赖无法 JVM 单测，由模拟器验收兜底）。
+
 ## 测试策略
 
 | 层 | 内容 | 方式 |
