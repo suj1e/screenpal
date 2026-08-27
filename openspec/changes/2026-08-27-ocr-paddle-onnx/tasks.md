@@ -2,7 +2,7 @@
 
 - [x] 1. 模型资产落地：assets/ocr/ 四文件（det/cls/rec onnx + 字典）+ AssetModelLoader（复制 filesDir 缓存）+ 资产完整性单测
   - 验收：构建通过；单测断言 4 文件存在、det<8MB/rec<15MB、字典 6623 行
-- [ ] 2. 检测后处理：DetPreProcessor + DbPostProcessor（二值化/连通域/包围框）+ 单测（合成概率图两文本块 → 2 box 且坐标 ±2px）
+- [x] 2. 检测后处理：DetPreProcessor + DbPostProcessor（二值化/连通域/包围框）+ 单测（合成概率图两文本块 → 2 box 且坐标 ±2px）
   - 验收：单测绿；空图返回空列表不崩溃
 - [ ] 3. 识别解码：ClsProcessor + RecRecognizer（CTC 贪心解码 + 字典）+ 单测（构造 logits 三用例：正常拼句/连续重复去重/blank 跳过）
   - 验收：单测绿；解码置信度均值正确
