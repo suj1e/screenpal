@@ -4,7 +4,6 @@ import android.app.Application
 import android.media.projection.MediaProjection
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
-import com.suj1e.screenpal.tts.DoubaoTtsEngine
 import com.suj1e.screenpal.tts.PiperTtsEngine
 import com.suj1e.screenpal.tts.SystemTtsEngine
 import com.suj1e.screenpal.tts.TtsManager
@@ -36,18 +35,11 @@ open class ScreenPalApplication : Application() {
         ttsManager = TtsManager(
             context = this,
             piperEngine = PiperTtsEngine(this),
+            // CLOUD 槽位按设置的服务商路由（DOUBAO / STEPFUN）；凭据缺失返回 null，
+            // 由 TtsManager 落 Piper → 系统兜底。
             cloudProviderFactory = {
                 val s = settingsRepository.userSettings.first()
-                if (s.volcanoSpeechAppId.isNotBlank() && s.volcanoSpeechToken.isNotBlank()) {
-                    DoubaoTtsEngine(
-                        context = this,
-                        appId = s.volcanoSpeechAppId,
-                        token = s.volcanoSpeechToken,
-                        voiceType = s.ttsVoice.ifBlank { DoubaoTtsEngine.DEFAULT_VOICE_TYPE }
-                    )
-                } else {
-                    null
-                }
+                com.suj1e.screenpal.vendor.VendorRouter.createTtsEngine(s, this)
             },
             systemEngineProvider = { SystemTtsEngine(this) },
             settingsProvider = {

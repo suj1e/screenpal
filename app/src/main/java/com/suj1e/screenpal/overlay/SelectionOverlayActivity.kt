@@ -26,15 +26,13 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.lifecycleScope
 import com.suj1e.screenpal.ScreenPalApplication
-import com.suj1e.screenpal.ocr.CloudOcrConfig
-import com.suj1e.screenpal.ocr.CloudOcrProvider
 import com.suj1e.screenpal.ocr.HybridOcrEngine
 import com.suj1e.screenpal.ocr.OcrEngine
 import com.suj1e.screenpal.ocr.OcrMode
 import com.suj1e.screenpal.ocr.paddle.PaddleOcrProvider
 import com.suj1e.screenpal.translate.BroadcastOutcome
 import com.suj1e.screenpal.translate.ChineseBroadcastPipeline
-import com.suj1e.screenpal.translate.DoubaoTranslateClient
+import com.suj1e.screenpal.vendor.VendorRouter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -230,17 +228,24 @@ class SelectionOverlayActivity : ComponentActivity() {
                 if (result.text.isNotBlank()) {
                     try {
                         val settings = app.settingsRepository.userSettings.first()
-                        val pipeline = ChineseBroadcastPipeline(
-                            DoubaoTranslateClient(settings.cloudApiKey)
-                        )
-                        val outcome = pipeline.broadcast(
-                            result.text,
-                            app.ttsManager,
-                            translationEnabled = settings.translationEnabled
-                        )
+                        // 转译客户端按所选服务商路由；缺凭据（null）直接落「播原文」语义，
+                        // 与管道内翻译失败降级一致（结果卡标注「翻译不可用」）。
+                        val pipeline = VendorRouter.createTranslateClient(settings)
+                            ?.let { ChineseBroadcastPipeline(it) }
+                        val outcome = if (pipeline != null) {
+                            pipeline.broadcast(
+                                result.text,
+                                app.ttsManager,
+                                translationEnabled = settings.translationEnabled
+                            )
+                        } else {
+                            Log.w(TAG, "所选在线服务商缺少转译凭据；跳过翻译直读原文")
+                            app.ttsManager.speak(result.text)
+                            BroadcastOutcome.FallbackOriginal
+                        }
                         // 主显播报文本（译文或降级原文），标注后附原文小字供校对。
                         metaAnnotation(outcome)?.let { resultMeta.append(it) }
-                        pipeline.lastSpokenText?.let { spoken ->
+                        pipeline?.lastSpokenText?.let { spoken ->
                             if (spoken != result.text) {
                                 resultText.text = spoken
                                 val original = result.text.take(120) + if (result.text.length > 120) "…" else ""
@@ -265,27 +270,22 @@ class SelectionOverlayActivity : ComponentActivity() {
         }
     }
 
-    /** Choose LOCAL/CLOUD/HYBRID per settings; degrade to LOCAL if cloud config missing. */
+    /** Choose LOCAL/CLOUD/HYBRID per settings; cloud side routes by vendor; degrade to LOCAL if cloud config missing. */
     private suspend fun resolveOcrEngine(app: ScreenPalApplication): OcrEngine {
         val settings = app.settingsRepository.userSettings.first()
         val mode = runCatching { OcrMode.valueOf(settings.ocrMode.uppercase()) }
             .getOrDefault(OcrMode.HYBRID)
-        val apiKey = settings.cloudApiKey
 
         return withContext(Dispatchers.Default) {
             when (mode) {
                 OcrMode.LOCAL -> PaddleOcrProvider.getInstance(app)
-                OcrMode.CLOUD -> if (apiKey.isBlank()) {
-                    Log.w(TAG, "Cloud OCR without API key; degrading to local")
+                OcrMode.CLOUD -> VendorRouter.createOcrEngine(settings) ?: run {
+                    Log.w(TAG, "Cloud OCR without vendor credentials; degrading to local")
                     PaddleOcrProvider.getInstance(app)
-                } else {
-                    CloudOcrProvider(CloudOcrConfig(arkApiKey = apiKey))
                 }
                 OcrMode.HYBRID -> HybridOcrEngine(
                     PaddleOcrProvider.getInstance(app),
-                    cloudProvider = apiKey.takeIf { it.isNotBlank() }?.let {
-                        CloudOcrProvider(CloudOcrConfig(arkApiKey = it))
-                    },
+                    cloudProvider = VendorRouter.createOcrEngine(settings),
                     confidenceThreshold = 0.75f
                 )
             }

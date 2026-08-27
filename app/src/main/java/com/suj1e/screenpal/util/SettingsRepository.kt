@@ -22,7 +22,10 @@ data class UserSettings(
     val translationEnabled: Boolean = true,
     val volcanoSpeechAppId: String = "",
     val volcanoSpeechToken: String = "",
-    val ttsVoice: String = "BV001_streaming"
+    val ttsVoice: String = "BV001_streaming",
+    val cloudVendor: String = "DOUBAO",
+    val stepfunApiKey: String = "",
+    val stepfunVoice: String = "wenying"
 )
 
 class SettingsRepository(private val context: Context) {
@@ -40,7 +43,10 @@ class SettingsRepository(private val context: Context) {
             translationEnabled = prefs[KEY_TRANSLATION_ENABLED] ?: true,
             volcanoSpeechAppId = prefs[KEY_VOLCANO_APP_ID] ?: "",
             volcanoSpeechToken = prefs[KEY_VOLCANO_TOKEN] ?: "",
-            ttsVoice = prefs[KEY_TTS_VOICE] ?: "BV001_streaming"
+            ttsVoice = prefs[KEY_TTS_VOICE] ?: "BV001_streaming",
+            cloudVendor = prefs[KEY_CLOUD_VENDOR] ?: "DOUBAO",
+            stepfunApiKey = prefs[KEY_STEPFUN_API_KEY] ?: "",
+            stepfunVoice = prefs[KEY_STEPFUN_VOICE] ?: "wenying"
         )
     }
 
@@ -56,7 +62,10 @@ class SettingsRepository(private val context: Context) {
                 translationEnabled = prefs[KEY_TRANSLATION_ENABLED] ?: true,
                 volcanoSpeechAppId = prefs[KEY_VOLCANO_APP_ID] ?: "",
                 volcanoSpeechToken = prefs[KEY_VOLCANO_TOKEN] ?: "",
-                ttsVoice = prefs[KEY_TTS_VOICE] ?: "BV001_streaming"
+                ttsVoice = prefs[KEY_TTS_VOICE] ?: "BV001_streaming",
+                cloudVendor = prefs[KEY_CLOUD_VENDOR] ?: "DOUBAO",
+                stepfunApiKey = prefs[KEY_STEPFUN_API_KEY] ?: "",
+                stepfunVoice = prefs[KEY_STEPFUN_VOICE] ?: "wenying"
             )
             val updated = current.transform()
             prefs[KEY_FLOATING_WINDOW] = updated.floatingWindowEnabled
@@ -69,6 +78,9 @@ class SettingsRepository(private val context: Context) {
             prefs[KEY_VOLCANO_APP_ID] = updated.volcanoSpeechAppId
             prefs[KEY_VOLCANO_TOKEN] = updated.volcanoSpeechToken
             prefs[KEY_TTS_VOICE] = updated.ttsVoice
+            prefs[KEY_CLOUD_VENDOR] = updated.cloudVendor
+            prefs[KEY_STEPFUN_API_KEY] = updated.stepfunApiKey
+            prefs[KEY_STEPFUN_VOICE] = updated.stepfunVoice
         }
     }
 
@@ -83,5 +95,8 @@ class SettingsRepository(private val context: Context) {
         private val KEY_VOLCANO_APP_ID = stringPreferencesKey("volcano_speech_app_id")
         private val KEY_VOLCANO_TOKEN = stringPreferencesKey("volcano_speech_token")
         private val KEY_TTS_VOICE = stringPreferencesKey("tts_voice")
+        private val KEY_CLOUD_VENDOR = stringPreferencesKey("cloud_vendor")
+        private val KEY_STEPFUN_API_KEY = stringPreferencesKey("stepfun_api_key")
+        private val KEY_STEPFUN_VOICE = stringPreferencesKey("stepfun_voice")
     }
 }
