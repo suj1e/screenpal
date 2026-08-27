@@ -4,7 +4,7 @@
   - 验收：阈值 0.5 判定正确
 - [x] 2. DoubaoTranslateClient（方舟 chat/completions AI 转译：system/温度/截断）+ 单测
   - 验收：mock 绿；多行译文拼接正确
-- [ ] 3. ChineseBroadcastPipeline + 降级矩阵五用例
+- [x] 3. ChineseBroadcastPipeline + 降级矩阵五用例
   - 验收：5s 超时降级原文；开关生效
 - [ ] 4. 卡片双语 UI + 设置开关（方舟 Key 复用）
   - 验收：持久化往返；两种卡片呈现正确
