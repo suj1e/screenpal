@@ -8,6 +8,8 @@ import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.PointF
 import android.graphics.Rect
 import android.graphics.RectF
 import android.net.Uri
@@ -39,6 +41,34 @@ class SelectionOverlayActivity : ComponentActivity() {
         const val EXTRA_SCREENSHOT_URI = "extra_screenshot_uri"
         const val EXTRA_SELECTION_RECT = "extra_selection_rect"
         const val TAG = "SelectionOverlay"
+
+        /** Minimum distance between two sampled lasso points. */
+        internal const val MIN_SAMPLE_DISTANCE_DP = 8f
+
+        /** Width of the visible purple lasso trace. */
+        internal const val STROKE_LINE_DP = 4f
+
+        /**
+         * Pure sampling filter for lasso MOVE events: [candidate] joins the
+         * stroke only when it is at least [minDistancePx] away from the last
+         * sampled point (an empty stroke always accepts its first point).
+         * Returns a new list; the input is never mutated. Exposed for JVM
+         * unit tests.
+         */
+        internal fun filterStrokePoints(
+            existing: List<PointF>,
+            candidate: PointF,
+            minDistancePx: Float
+        ): List<PointF> {
+            val last = existing.lastOrNull() ?: return listOf(candidate)
+            val dx = candidate.x - last.x
+            val dy = candidate.y - last.y
+            return if (dx * dx + dy * dy >= minDistancePx * minDistancePx) {
+                existing + candidate
+            } else {
+                existing
+            }
+        }
     }
 
     private lateinit var screenshotBitmap: Bitmap
@@ -224,17 +254,30 @@ class SelectionOverlayActivity : ComponentActivity() {
             style = Paint.Style.FILL
         }
 
-        private val borderPaint = Paint().apply {
+        private val strokePaint = Paint().apply {
             color = Color.parseColor("#FF7B68EE")
             style = Paint.Style.STROKE
-            strokeWidth = 4f
+            strokeWidth = STROKE_LINE_DP * resources.displayMetrics.density
+            strokeCap = Paint.Cap.ROUND
+            strokeJoin = Paint.Join.ROUND
+            isAntiAlias = true
         }
 
-        var currentRect: RectF? = null
+        /** Sampled lasso points (>= [MIN_SAMPLE_DISTANCE_DP] apart). */
+        private val strokePoints = mutableListOf<PointF>()
+
+        /** Smooth path rebuilt from [strokePoints] via the midpoint quadTo technique. */
+        private val strokePath = Path()
+        private var isSelecting = false
 
         fun resetForReselection() {
-            currentRect = null
             isSelecting = false
+            clearStroke()
+        }
+
+        private fun clearStroke() {
+            strokePoints.clear()
+            strokePath.reset()
             invalidate()
         }
 
@@ -247,33 +290,24 @@ class SelectionOverlayActivity : ComponentActivity() {
 
             canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), overlayPaint)
 
-            currentRect?.let { rect ->
-                val clearPaint = Paint().apply {
-                    xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.CLEAR)
-                    style = Paint.Style.FILL
-                }
-                canvas.drawRect(rect, clearPaint)
-                canvas.drawRect(rect, borderPaint)
+            if (strokePoints.isNotEmpty()) {
+                canvas.drawPath(strokePath, strokePaint)
             }
         }
 
         override fun onTouchEvent(event: MotionEvent): Boolean {
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
-                    downX = event.x
-                    downY = event.y
                     isSelecting = true
-                    currentRect = null
+                    strokePoints.clear()
+                    strokePath.reset()
+                    addSampledPoint(event.x, event.y)
                     invalidate()
                     return true
                 }
                 MotionEvent.ACTION_MOVE -> {
                     if (isSelecting) {
-                        val left = minOf(downX, event.x)
-                        val top = minOf(downY, event.y)
-                        val right = maxOf(downX, event.x)
-                        val bottom = maxOf(downY, event.y)
-                        currentRect = RectF(left, top, right, bottom)
+                        addSampledPoint(event.x, event.y)
                         invalidate()
                     }
                     return true
@@ -281,27 +315,57 @@ class SelectionOverlayActivity : ComponentActivity() {
                 MotionEvent.ACTION_UP -> {
                     if (isSelecting) {
                         isSelecting = false
-                        currentRect?.let { rect ->
-                            if (rect.width() > 48 && rect.height() > 48) {
-                                onSelectionConfirmed(
-                                    Rect(
-                                        rect.left.toInt(), rect.top.toInt(),
-                                        rect.right.toInt(), rect.bottom.toInt()
-                                    )
-                                )
-                            }
-                        }
+                        // Bounds judgment lands in a later task; the stroke
+                        // stays visible until the next DOWN clears it.
                     }
+                    return true
+                }
+                MotionEvent.ACTION_CANCEL -> {
+                    isSelecting = false
+                    clearStroke()
                     return true
                 }
                 else -> return super.onTouchEvent(event)
             }
         }
-    }
 
-    private var downX = 0f
-    private var downY = 0f
-    private var isSelecting = false
+        private fun addSampledPoint(rawX: Float, rawY: Float) {
+            // Clamp out-of-screen coordinates into the view (design edge case).
+            val x = rawX.coerceIn(0f, width.coerceAtLeast(0).toFloat())
+            val y = rawY.coerceIn(0f, height.coerceAtLeast(0).toFloat())
+            val minDistancePx = MIN_SAMPLE_DISTANCE_DP * resources.displayMetrics.density
+            val filtered = filterStrokePoints(strokePoints, PointF(x, y), minDistancePx)
+            if (filtered.size != strokePoints.size) {
+                strokePoints.clear()
+                strokePoints.addAll(filtered)
+                rebuildStrokePath()
+            }
+        }
+
+        /**
+         * Rebuilds the smooth stroke path from the sampled points: each
+         * segment is a quadratic curve whose control point is the previous
+         * sample and whose end is the midpoint to the next sample.
+         */
+        private fun rebuildStrokePath() {
+            strokePath.reset()
+            if (strokePoints.isEmpty()) return
+            val first = strokePoints[0]
+            strokePath.moveTo(first.x, first.y)
+            if (strokePoints.size == 1) {
+                // Zero-length line + round cap renders a dot for a single tap.
+                strokePath.lineTo(first.x, first.y + 0.01f)
+                return
+            }
+            for (i in 1 until strokePoints.size) {
+                val prev = strokePoints[i - 1]
+                val cur = strokePoints[i]
+                strokePath.quadTo(prev.x, prev.y, (prev.x + cur.x) / 2f, (prev.y + cur.y) / 2f)
+            }
+            val last = strokePoints.last()
+            strokePath.lineTo(last.x, last.y)
+        }
+    }
 
     override fun onStop() {
         super.onStop()
