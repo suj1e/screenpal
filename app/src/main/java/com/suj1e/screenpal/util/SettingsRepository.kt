@@ -19,7 +19,10 @@ data class UserSettings(
     val ttsPitch: Float = 1.0f,
     val ocrMode: String = "HYBRID",
     val cloudApiKey: String = "",
-    val translationEnabled: Boolean = true
+    val translationEnabled: Boolean = true,
+    val volcanoSpeechAppId: String = "",
+    val volcanoSpeechToken: String = "",
+    val ttsVoice: String = "BV001_streaming"
 )
 
 class SettingsRepository(private val context: Context) {
@@ -34,7 +37,10 @@ class SettingsRepository(private val context: Context) {
             ttsPitch = prefs[KEY_TTS_PITCH] ?: 1.0f,
             ocrMode = prefs[KEY_OCR_MODE] ?: "HYBRID",
             cloudApiKey = prefs[KEY_CLOUD_API_KEY] ?: "",
-            translationEnabled = prefs[KEY_TRANSLATION_ENABLED] ?: true
+            translationEnabled = prefs[KEY_TRANSLATION_ENABLED] ?: true,
+            volcanoSpeechAppId = prefs[KEY_VOLCANO_APP_ID] ?: "",
+            volcanoSpeechToken = prefs[KEY_VOLCANO_TOKEN] ?: "",
+            ttsVoice = prefs[KEY_TTS_VOICE] ?: "BV001_streaming"
         )
     }
 
@@ -47,7 +53,10 @@ class SettingsRepository(private val context: Context) {
                 ttsPitch = prefs[KEY_TTS_PITCH] ?: 1.0f,
                 ocrMode = prefs[KEY_OCR_MODE] ?: "HYBRID",
                 cloudApiKey = prefs[KEY_CLOUD_API_KEY] ?: "",
-                translationEnabled = prefs[KEY_TRANSLATION_ENABLED] ?: true
+                translationEnabled = prefs[KEY_TRANSLATION_ENABLED] ?: true,
+                volcanoSpeechAppId = prefs[KEY_VOLCANO_APP_ID] ?: "",
+                volcanoSpeechToken = prefs[KEY_VOLCANO_TOKEN] ?: "",
+                ttsVoice = prefs[KEY_TTS_VOICE] ?: "BV001_streaming"
             )
             val updated = current.transform()
             prefs[KEY_FLOATING_WINDOW] = updated.floatingWindowEnabled
@@ -57,6 +66,9 @@ class SettingsRepository(private val context: Context) {
             prefs[KEY_OCR_MODE] = updated.ocrMode
             prefs[KEY_CLOUD_API_KEY] = updated.cloudApiKey
             prefs[KEY_TRANSLATION_ENABLED] = updated.translationEnabled
+            prefs[KEY_VOLCANO_APP_ID] = updated.volcanoSpeechAppId
+            prefs[KEY_VOLCANO_TOKEN] = updated.volcanoSpeechToken
+            prefs[KEY_TTS_VOICE] = updated.ttsVoice
         }
     }
 
@@ -68,5 +80,8 @@ class SettingsRepository(private val context: Context) {
         private val KEY_OCR_MODE = stringPreferencesKey("ocr_mode")
         private val KEY_CLOUD_API_KEY = stringPreferencesKey("cloud_api_key")
         private val KEY_TRANSLATION_ENABLED = booleanPreferencesKey("translationEnabled")
+        private val KEY_VOLCANO_APP_ID = stringPreferencesKey("volcano_speech_app_id")
+        private val KEY_VOLCANO_TOKEN = stringPreferencesKey("volcano_speech_token")
+        private val KEY_TTS_VOICE = stringPreferencesKey("tts_voice")
     }
 }

@@ -5,6 +5,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -59,15 +60,14 @@ class TtsManagerFallbackTest {
 
     private fun buildManager(
         piper: FakeTtsEngine,
-        cloudProvider: GoogleCloudTtsProvider? = null,
+        cloudEngine: TtsEngine? = null,
         engineType: TtsEngineType = TtsEngineType.PIPER
     ): Pair<TtsManager, FakeTtsEngine> {
         val systemFake = FakeTtsEngine()
         val manager = TtsManager(
             context = mockk(relaxed = true),
             piperEngine = piper,
-            cloudProviderFactory = { cloudProvider },
-            cloudPlayer = CloudAudioPlayer(),
+            cloudProviderFactory = { cloudEngine },
             systemEngineProvider = { systemFake },
             settingsProvider = { TtsConfig(engineType, 1.0f, 1.0f) }
         )
@@ -115,6 +115,99 @@ class TtsManagerFallbackTest {
 
         assertTrue(piper.stopped)
         assertTrue(systemFake.stopped)
+    }
+}
+
+/**
+ * Fallback matrix after Doubao (火山引擎) became the CLOUD engine
+ * (2026-08-27-tts-domestic-online):
+ *   CLOUD selected: Doubao -> Piper -> System (missing credentials = null factory
+ *   drops straight to Piper); PIPER selected: Piper -> Doubao -> System.
+ */
+class TtsManagerCloudFallbackTest {
+
+    private fun buildManager(
+        piper: FakeTtsEngine,
+        cloudEngine: TtsEngine?,
+        engineType: TtsEngineType
+    ): Triple<TtsManager, FakeTtsEngine, TtsEngine?> {
+        val systemFake = FakeTtsEngine()
+        val manager = TtsManager(
+            context = mockk(relaxed = true),
+            piperEngine = piper,
+            cloudProviderFactory = { cloudEngine },
+            systemEngineProvider = { systemFake },
+            settingsProvider = { TtsConfig(engineType, 1.0f, 1.0f) }
+        )
+        return Triple(manager, systemFake, cloudEngine)
+    }
+
+    @Test
+    fun cloudSelected_cloudSpeakFails_degradesToPiper() = kotlinx.coroutines.runBlocking {
+        val piper = FakeTtsEngine()
+        val (manager, systemFake, _) = buildManager(
+            piper,
+            FakeTtsEngine(failOnSpeak = true),
+            TtsEngineType.CLOUD
+        )
+
+        manager.speak("豆包失败降级")
+
+        assertEquals(listOf("豆包失败降级"), piper.spokenTexts)
+        assertTrue(systemFake.spokenTexts.isEmpty())
+    }
+
+    @Test
+    fun cloudSelected_cloudAndPiperBothFail_degradesToSystem() = kotlinx.coroutines.runBlocking {
+        val piper = FakeTtsEngine(failOnSpeak = true)
+        val (manager, systemFake, _) = buildManager(
+            piper,
+            FakeTtsEngine(failOnSpeak = true),
+            TtsEngineType.CLOUD
+        )
+
+        manager.speak("两级降级")
+
+        assertEquals(listOf("两级降级"), systemFake.spokenTexts)
+        assertTrue(piper.spokenTexts.isEmpty())
+    }
+
+    @Test
+    fun cloudSelected_factoryReturnsNull_goesStraightToPiper() = kotlinx.coroutines.runBlocking {
+        // Missing Volcano credentials -> factory yields null -> Piper speaks directly.
+        val piper = FakeTtsEngine()
+        val (manager, systemFake, _) = buildManager(piper, null, TtsEngineType.CLOUD)
+
+        manager.speak("无凭据直落 Piper")
+
+        assertEquals(listOf("无凭据直落 Piper"), piper.spokenTexts)
+        assertTrue(systemFake.spokenTexts.isEmpty())
+    }
+
+    @Test
+    fun piperSelected_piperFails_cloudEngineSucceeds_usesCloud() = kotlinx.coroutines.runBlocking {
+        val piper = FakeTtsEngine(failOnSpeak = true)
+        val cloud = FakeTtsEngine()
+        val (manager, systemFake, _) = buildManager(piper, cloud, TtsEngineType.PIPER)
+
+        manager.speak("Piper 失败走豆包")
+
+        assertEquals(listOf("Piper 失败走豆包"), cloud.spokenTexts)
+        assertTrue(piper.spokenTexts.isEmpty())
+        assertTrue(systemFake.spokenTexts.isEmpty())
+    }
+
+    @Test
+    fun stop_notifiesActiveCloudEngine() = kotlinx.coroutines.runBlocking {
+        val piper = FakeTtsEngine()
+        val cloud = FakeTtsEngine()
+        val (manager, _, _) = buildManager(piper, cloud, TtsEngineType.CLOUD)
+
+        manager.speak("播报中")
+        assertFalse(cloud.stopped)
+        manager.stop()
+
+        assertTrue(cloud.stopped)
     }
 }
 

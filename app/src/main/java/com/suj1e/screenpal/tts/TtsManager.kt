@@ -18,13 +18,12 @@ data class TtsConfig(
 
 /**
  * Unified TTS entry point. Picks the engine configured in settings and degrades
- * automatically: PIPER -> CLOUD -> SYSTEM.
+ * automatically: CLOUD(豆包/火山引擎) -> PIPER -> SYSTEM whichever slot fails.
  */
 class TtsManager(
     private val context: Context,
     private val piperEngine: TtsEngine,
-    private val cloudProviderFactory: suspend () -> GoogleCloudTtsProvider? = { null },
-    private val cloudPlayer: CloudAudioPlayer = CloudAudioPlayer(),
+    private val cloudProviderFactory: suspend () -> TtsEngine? = { null },
     private val systemEngineProvider: () -> TtsEngine = { SystemTtsEngine(context) },
     private val settingsProvider: suspend () -> TtsConfig
 ) {
@@ -32,6 +31,7 @@ class TtsManager(
     val isSpeaking: SharedFlow<Boolean> = speakingFlow
 
     private var activeEngine: TtsEngine? = null
+    private var activeCloudEngine: TtsEngine? = null
     private val systemEngine: TtsEngine by lazy { systemEngineProvider() }
     private var systemEngineInitialized = AtomicBoolean(false)
 
@@ -52,7 +52,7 @@ class TtsManager(
                 TtsEngineType.PIPER -> speakWithFallback(text, config.rate, config.pitch)
                 TtsEngineType.CLOUD -> {
                     if (!speakWithCloud(text, config.rate, config.pitch)) {
-                        speakWithSystem(text, config.rate, config.pitch)
+                        speakWithFallback(text, config.rate, config.pitch)
                     }
                 }
                 TtsEngineType.SYSTEM -> speakWithSystem(text, config.rate, config.pitch)
@@ -75,14 +75,17 @@ class TtsManager(
     }
 
     private suspend fun speakWithCloud(text: String, rate: Float, pitch: Float): Boolean {
-        val provider = cloudProviderFactory() ?: return false
+        val engine = cloudProviderFactory() ?: return false
         return try {
-            val audio = provider.synthesize(text, rate, pitch)
-            if (audio.isEmpty()) return false
-            cloudPlayer.play(audio, context.cacheDir)
+            // Replace-in-progress semantics: stop the previous engine before
+            // starting a new one, else overlapping plays cannot be stopped.
+            activeCloudEngine?.stop()
+            activeEngine = engine
+            activeCloudEngine = engine
+            engine.speak(text, rate, pitch)
             true
         } catch (e: Exception) {
-            Log.w(TAG, "Cloud TTS failed; degrading to System", e)
+            Log.w(TAG, "Cloud TTS failed; degrading", e)
             false
         }
     }
@@ -103,7 +106,7 @@ class TtsManager(
 
     fun stop() {
         piperEngine.stop()
-        cloudPlayer.stop()
+        activeCloudEngine?.stop()
         systemEngine.stop()
     }
 
@@ -117,27 +120,5 @@ class TtsManager(
     companion object {
         const val TAG = "TtsManager"
 
-        fun create(
-            context: Context,
-            settingsRepository: SettingsRepository,
-            piperEngine: PiperTtsEngine
-        ): TtsManager {
-            return TtsManager(
-                context = context,
-                piperEngine = piperEngine,
-                cloudProviderFactory = {
-                    val s = settingsRepository.userSettings.first()
-                    s.cloudApiKey.takeIf { it.isNotBlank() }?.let { GoogleCloudTtsProvider(it) }
-                },
-                settingsProvider = {
-                    val s = settingsRepository.userSettings.first()
-                    TtsConfig(
-                        engineType = TtsEngineType.from(s.ttsEngine),
-                        rate = s.ttsRate,
-                        pitch = s.ttsPitch
-                    )
-                }
-            )
-        }
     }
 }
