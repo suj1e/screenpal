@@ -6,7 +6,7 @@
   - 验收：单测绿；空图返回空列表不崩溃
 - [x] 3. 识别解码：ClsProcessor + RecRecognizer（CTC 贪心解码 + 字典）+ 单测（构造 logits 三用例：正常拼句/连续重复去重/blank 跳过）
   - 验收：单测绿；解码置信度均值正确
-- [ ] 4. PaddleOcrProvider 编排接入 + resolveOcrEngine LOCAL 分支切换 + 懒加载单例
+- [x] 4. PaddleOcrProvider 编排接入 + resolveOcrEngine LOCAL 分支切换 + 懒加载单例
   - 验收：OcrEngine 接口不变；既有 Hybrid/OcrEngine 测试全绿
 - [ ] 5. 移除 ML Kit：gradle 依赖、MlKitOcrProvider、设置相关引用清理
   - 验收：APK 无 mlkit 条目（aapt2 核查）；全仓 grep 无 text-recognition
