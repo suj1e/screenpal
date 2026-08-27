@@ -79,7 +79,8 @@ dependencies {
     implementation("androidx.compose.foundation:foundation")
 
     // OCR
-    implementation("com.google.android.gms:play-services-mlkit-text-recognition:19.0.0")
+    // OCR (bundled Chinese model; works without Google Play services)
+    implementation("com.google.mlkit:text-recognition-chinese:16.0.1")
 
     // TTS (ONNX Runtime)
     implementation("com.microsoft.onnxruntime:onnxruntime-android:1.17.0")

@@ -47,6 +47,7 @@ class MainViewModel(
                     ocrMode = settings.ocrMode,
                     cloudApiKey = settings.cloudApiKey
                 )
+                maybeAutoStartFloatingService()
             }
         }
     }
@@ -58,6 +59,23 @@ class MainViewModel(
             overlayPermissionGranted = status["overlay"] ?: false,
             notificationPermissionGranted = status["notification"] ?: false
         )
+        maybeAutoStartFloatingService()
+    }
+
+    /**
+     * Self-heal: the persisted toggle says ON but the service died with a
+     * previous process (reinstall, force-stop, crash). Restart it. Called from
+     * both the settings collector and onResume because either side may be
+     * ready first.
+     */
+    private fun maybeAutoStartFloatingService() {
+        val state = _uiState.value
+        if (state.floatingWindowEnabled &&
+            state.overlayPermissionGranted &&
+            !FloatingWindowService.serviceRunning
+        ) {
+            FloatingWindowService.start(settingsRepository.appContext)
+        }
     }
 
     private fun update(transform: (MainUiState) -> MainUiState) {

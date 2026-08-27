@@ -25,7 +25,8 @@ class ScreenCaptureServiceTest {
         // Verify constants exist and have expected values
         assertEquals(1001, ScreenCaptureService.NOTIFICATION_ID)
         assertEquals("ScreenPal_Capture", ScreenCaptureService.CHANNEL_ID)
-        assertEquals(3000L, ScreenCaptureService.CAPTURE_TIMEOUT_MS)
+        assertEquals(12000L, ScreenCaptureService.CAPTURE_TIMEOUT_MS)
+        assertEquals(10000L, ScreenCaptureService.IMAGE_WAIT_TIMEOUT_MS)
         assertEquals(85, ScreenCaptureService.JPEG_QUALITY)
         assertEquals("screenshots", ScreenCaptureService.CAPTURE_DIR)
         assertEquals("extra_result_code", ScreenCaptureService.EXTRA_RESULT_CODE)

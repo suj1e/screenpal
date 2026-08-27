@@ -23,6 +23,8 @@ data class UserSettings(
 
 class SettingsRepository(private val context: Context) {
 
+    val appContext: Context = context.applicationContext
+
     val userSettings: Flow<UserSettings> = context.dataStore.data.map { prefs ->
         UserSettings(
             floatingWindowEnabled = prefs[KEY_FLOATING_WINDOW] ?: false,

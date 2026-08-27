@@ -46,7 +46,19 @@ class ScreenPalApplication : Application() {
     }
 
     fun setMediaProjection(projection: MediaProjection) {
+        releaseMediaProjection()
         mediaProjection = projection
+        // API 34+ requires a registered callback before createVirtualDisplay().
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            projection.registerCallback(object : MediaProjection.Callback() {
+                override fun onStop() {
+                    // The async stop may belong to a replaced projection; only clear if current.
+                    if (mediaProjection === projection) {
+                        mediaProjection = null
+                    }
+                }
+            }, null)
+        }
     }
 
     fun hasValidMediaProjection(): Boolean {

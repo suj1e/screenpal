@@ -36,7 +36,7 @@ class FloatingWindowService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        startForeground(NOTIFICATION_ID, buildNotification())
+        startForegroundCompat()
 
         if (!Settings.canDrawOverlays(this)) {
             Toast.makeText(this, "请先授予悬浮窗权限", Toast.LENGTH_LONG).show()
@@ -47,11 +47,31 @@ class FloatingWindowService : Service() {
         if (floatingView == null) {
             showFloatingBall()
         }
+        serviceRunning = true
         return START_STICKY
+    }
+
+    /**
+     * The overlay ball is a persistent app-specific service, not a capture
+     * session, so it must NOT use the mediaProjection FGS type (that type
+     * throws SecurityException without an active projection).
+     */
+    private fun startForegroundCompat() {
+        val notification = buildNotification()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(
+                NOTIFICATION_ID,
+                notification,
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+            )
+        } else {
+            startForeground(NOTIFICATION_ID, notification)
+        }
     }
 
     override fun onDestroy() {
         removeFloatingBall()
+        serviceRunning = false
         super.onDestroy()
     }
 
@@ -139,15 +159,21 @@ class FloatingWindowService : Service() {
     }
 
     private fun onBallClicked() {
+        android.util.Log.d(TAG, "ball clicked, hasProjection=${(application as ScreenPalApplication).hasValidMediaProjection()}")
         removeFloatingBall()
         captureScreen(object : CaptureCallback {
             override fun onSuccess(uri: android.net.Uri?) {
+                android.util.Log.d(TAG, "capture success uri=$uri")
                 uri?.let { launchSelection(it) } ?: restoreAfterFailure("截图数据为空")
             }
 
             override fun onError(error: Int) {
-                val reason = if (error == ERROR_NEED_AUTH) "需要屏幕录制授权" else "截图失败"
-                restoreAfterFailure(reason)
+                android.util.Log.d(TAG, "capture error=$error")
+                if (error == ERROR_NEED_AUTH) {
+                    launchConsent()
+                } else {
+                    restoreAfterFailure("截图失败")
+                }
             }
         })
     }
@@ -160,6 +186,13 @@ class FloatingWindowService : Service() {
     private fun launchSelection(screenshotUri: android.net.Uri) {
         val intent = Intent(this, SelectionOverlayActivity::class.java).apply {
             putExtra(SelectionOverlayActivity.EXTRA_SCREENSHOT_URI, screenshotUri)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        startActivity(intent)
+    }
+
+    private fun launchConsent() {
+        val intent = Intent(this, CaptureConsentActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         startActivity(intent)
@@ -218,8 +251,14 @@ class FloatingWindowService : Service() {
         const val EDGE_SNAP_DP = 30
         const val BALL_SIZE_DP = 56
 
+        const val TAG = "ScreenPalFlow"
         const val ERROR_NEED_AUTH = 1001
         const val ERROR_CAPTURE_FAILED = 1002
+
+        /** Process-scoped liveness flag; the service dies with the process. */
+        @Volatile
+        var serviceRunning = false
+            private set
 
         fun start(context: Context) {
             val intent = Intent(context, FloatingWindowService::class.java)

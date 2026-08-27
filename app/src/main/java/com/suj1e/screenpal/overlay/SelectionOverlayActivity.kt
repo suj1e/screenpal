@@ -112,7 +112,7 @@ class SelectionOverlayActivity : ComponentActivity() {
                 resultText.text = "识别中…"
                 resultMeta.text = ""
 
-                val result = engine.recognize(cropped)
+                val result = withContext(Dispatchers.Default) { engine.recognize(cropped) }
                 cropped.recycle()
 
                 lastRecognizedText = result.text
@@ -120,7 +120,14 @@ class SelectionOverlayActivity : ComponentActivity() {
                 resultMeta.text = "置信度 %.0f%% · ${result.blocks.size} 个文本块".format(result.confidence * 100)
 
                 if (result.text.isNotBlank()) {
-                    app.ttsManager.speak(result.text)
+                    try {
+                        app.ttsManager.speak(result.text)
+                    } catch (e: Exception) {
+                        // Keep the recognized text visible; just annotate that
+                        // speech is unavailable (e.g. device has no TTS engine).
+                        Log.w(TAG, "TTS playback failed", e)
+                        runOnUiThread { resultMeta.append(" · 播报不可用") }
+                    }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "OCR/TTS pipeline failed", e)
@@ -209,6 +216,7 @@ class SelectionOverlayActivity : ComponentActivity() {
             resultCard.visibility = View.GONE
             selectionView.resetForReselection()
         })
+        actions.addView(actionButton("完成") { finish() })
 
         card.addView(resultText)
         card.addView(resultMeta)
@@ -307,5 +315,7 @@ class SelectionOverlayActivity : ComponentActivity() {
         if (!screenshotBitmap.isRecycled) {
             screenshotBitmap.recycle()
         }
+        // Bring the floating ball back now that the selection session is over.
+        com.suj1e.screenpal.service.FloatingWindowService.start(this)
     }
 }

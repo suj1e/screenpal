@@ -21,10 +21,12 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 import java.io.FileOutputStream
 
@@ -32,7 +34,8 @@ class ScreenCaptureService : Service() {
     companion object {
         const val NOTIFICATION_ID = 1001
         const val CHANNEL_ID = "ScreenPal_Capture"
-        const val CAPTURE_TIMEOUT_MS = 3000L
+        const val CAPTURE_TIMEOUT_MS = 12000L
+        const val IMAGE_WAIT_TIMEOUT_MS = 10000L
         const val JPEG_QUALITY = 85
         const val CAPTURE_DIR = "screenshots"
 
@@ -43,9 +46,11 @@ class ScreenCaptureService : Service() {
         const val RESULT_OK = -1
         const val RESULT_ERROR = 1
 
-        fun start(context: Context, resultReceiver: ResultReceiver) {
+        fun start(context: Context, resultReceiver: ResultReceiver, resultCode: Int = -1, resultData: Intent? = null) {
             val intent = Intent(context, ScreenCaptureService::class.java).apply {
                 putExtra(EXTRA_RESULT_RECEIVER, resultReceiver)
+                putExtra(EXTRA_RESULT_CODE, resultCode)
+                putExtra(EXTRA_RESULT_DATA, resultData)
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 context.startForegroundService(intent)
@@ -86,6 +91,7 @@ class ScreenCaptureService : Service() {
         serviceScope.launch(Dispatchers.Main) {
             try {
                 val uri = captureScreen(resultCode, resultData)
+                android.util.Log.d("ScreenPalFlow", "captureScreen -> uri=$uri")
                 if (uri != null) {
                     val bundle = android.os.Bundle().apply {
                         putParcelable("screenshot_uri", uri)
@@ -95,6 +101,7 @@ class ScreenCaptureService : Service() {
                     resultReceiver.send(RESULT_ERROR, null)
                 }
             } catch (e: Exception) {
+                android.util.Log.e("ScreenPalFlow", "captureScreen failed", e)
                 resultReceiver.send(RESULT_ERROR, null)
             } finally {
                 stopSelf()
@@ -154,14 +161,23 @@ class ScreenCaptureService : Service() {
         val app = applicationContext as com.suj1e.screenpal.ScreenPalApplication
         mediaProjection = app.mediaProjection
 
-        if (mediaProjection == null && resultCode != -1 && data != null) {
+        // Activity.RESULT_OK is -1; a successful consent arrives as (-1, data).
+        val consented = resultCode == android.app.Activity.RESULT_OK && data != null
+
+        if (mediaProjection == null && consented) {
             val projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as android.media.projection.MediaProjectionManager
             mediaProjection = projectionManager.getMediaProjection(resultCode, data)
+            android.util.Log.d("ScreenPalFlow", "created projection: $mediaProjection")
             app.setMediaProjection(mediaProjection!!)
+        } else {
+            android.util.Log.d(
+                "ScreenPalFlow",
+                "ensureMediaProjection reuse=$mediaProjection consented=$consented"
+            )
         }
     }
 
-    private fun acquireScreenshot(): Bitmap? {
+    private suspend fun acquireScreenshot(): Bitmap? {
         val metrics = android.util.DisplayMetrics()
         val displayManager = getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
         val defaultDisplay = displayManager.getDisplay(android.view.Display.DEFAULT_DISPLAY)
@@ -170,7 +186,18 @@ class ScreenCaptureService : Service() {
         val width = metrics.widthPixels
         val height = metrics.heightPixels
 
-        imageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2)
+        val reader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2)
+        imageReader = reader
+
+        // Register the listener BEFORE creating the display so the first frame
+        // cannot be missed, then wait for it off the main thread.
+        val frameReady = kotlinx.coroutines.CompletableDeferred<Image>()
+        reader.setOnImageAvailableListener({ r ->
+            if (frameReady.isActive) {
+                r.setOnImageAvailableListener(null, null)
+                frameReady.complete(r.acquireLatestImage())
+            }
+        }, android.os.Handler(android.os.Looper.getMainLooper()))
 
         virtualDisplay = mediaProjection?.createVirtualDisplay(
             "ScreenPal_Capture",
@@ -178,29 +205,35 @@ class ScreenCaptureService : Service() {
             height,
             metrics.densityDpi,
             android.hardware.display.DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
-            imageReader?.surface,
+            reader.surface,
             null,
             null
         )
+        android.util.Log.d(
+            "ScreenPalFlow",
+            "vd created: display=${virtualDisplay?.display} projection=$mediaProjection thread=${Thread.currentThread().name}"
+        )
 
         return try {
-            readImageFromReader(width, height)
+            val image = withTimeoutOrNull(IMAGE_WAIT_TIMEOUT_MS) { frameReady.await() }
+            if (image == null) {
+                android.util.Log.e("ScreenPalFlow", "no frame from ImageReader within ${IMAGE_WAIT_TIMEOUT_MS}ms")
+                return null
+            }
+
+            try {
+                readImage(image, width, height)
+            } finally {
+                image.close()
+            }
         } finally {
             imageReader?.close()
             imageReader = null
         }
     }
 
-    private fun readImageFromReader(width: Int, height: Int): Bitmap? {
-        val reader = imageReader ?: return null
-        var image: Image? = null
+    private fun readImage(image: Image, width: Int, height: Int): Bitmap? {
         return try {
-            var acquired = reader.acquireNextImage()
-            if (acquired == null) {
-                acquired = reader.acquireNextImage()
-            }
-            image = acquired
-
             val plane = image.planes[0]
             val buffer = plane.buffer
             val pixelStride = plane.pixelStride
@@ -215,9 +248,8 @@ class ScreenCaptureService : Service() {
             bitmap.recycle()
             cropped
         } catch (e: Exception) {
+            android.util.Log.e("ScreenPalFlow", "image -> bitmap failed", e)
             null
-        } finally {
-            image?.close()
         }
     }
 

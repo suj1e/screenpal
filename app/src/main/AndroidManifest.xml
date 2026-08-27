@@ -5,6 +5,7 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.INTERNET" />
@@ -28,6 +29,13 @@
             </intent-filter>
         </activity>
 
+        <!-- MediaProjection consent dialog host (transparent) -->
+        <activity
+            android:name=".service.CaptureConsentActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ScreenPal.Overlay"
+            android:excludeFromRecents="true" />
+
         <!-- Selection Overlay Activity -->
         <activity
             android:name=".overlay.SelectionOverlayActivity"
@@ -41,11 +49,15 @@
             android:foregroundServiceType="mediaProjection"
             android:exported="false" />
 
-        <!-- Floating Window Service -->
+        <!-- Floating Window Service: persistent overlay ball, not a capture session -->
         <service
             android:name=".service.FloatingWindowService"
-            android:foregroundServiceType="mediaProjection"
-            android:exported="false" />
+            android:foregroundServiceType="specialUse"
+            android:exported="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="persistent_floating_ball_overlay" />
+        </service>
 
         <!-- FileProvider -->
         <provider
