@@ -20,13 +20,15 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
-        ndk {
-            abiFilters += listOf("armeabi-v7a", "arm64-v8a")
-        }
     }
 
     buildTypes {
+        debug {
+            // Universal ABI so the x86_64 emulator can install debug builds.
+            ndk { abiFilters.clear() }
+        }
         release {
+            ndk { abiFilters += listOf("armeabi-v7a", "arm64-v8a") }
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
