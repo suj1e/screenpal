@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="480" viewBox="0 0 920 480" font-family="-apple-system, 'PingFang SC', sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#7C3AED"/>
+    </marker>
+    <marker id="r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#DC2626"/>
+    </marker>
+  </defs>
+  <rect width="920" height="480" fill="#F6F5FA"/>
+  <text x="36" y="46" font-size="22" font-weight="700" fill="#1a1a2e">Piper 预热接线（2026-08-27-piper-warmup）</text>
+  <text x="36" y="70" font-size="13" fill="#6b7280">修复：TtsManager.initialize() 此前无任何调用方 → Piper 永不初始化、模型永不下载</text>
+
+  <!-- nodes -->
+  <g font-size="13">
+    <rect x="36" y="110" width="150" height="56" rx="12" fill="#FFFFFF" stroke="#DDD6FE" stroke-width="2"/>
+    <text x="111" y="134" text-anchor="middle" font-weight="700" fill="#1a1a2e">Application</text>
+    <text x="111" y="154" text-anchor="middle" fill="#6b7280">onCreate</text>
+
+    <rect x="236" y="110" width="170" height="56" rx="12" fill="#7C3AED"/>
+    <text x="321" y="134" text-anchor="middle" font-weight="700" fill="#FFFFFF">warmUpTts()</text>
+    <text x="321" y="154" text-anchor="middle" fill="#E9D5FF">internal open · 可覆写测试</text>
+
+    <rect x="456" y="110" width="190" height="56" rx="12" fill="#FFFFFF" stroke="#DDD6FE" stroke-width="2"/>
+    <text x="551" y="134" text-anchor="middle" font-weight="700" fill="#1a1a2e">appScope.launch</text>
+    <text x="551" y="154" text-anchor="middle" fill="#6b7280">SupervisorJob + IO · 不阻塞</text>
+
+    <rect x="696" y="110" width="188" height="56" rx="12" fill="#FFFFFF" stroke="#DDD6FE" stroke-width="2"/>
+    <text x="790" y="134" text-anchor="middle" font-weight="700" fill="#1a1a2e">ttsManager.initialize()</text>
+    <text x="790" y="154" text-anchor="middle" fill="#6b7280">runCatching · 失败仅记日志</text>
+
+    <rect x="330" y="240" width="220" height="66" rx="12" fill="#FFFFFF" stroke="#DDD6FE" stroke-width="2"/>
+    <text x="440" y="266" text-anchor="middle" font-weight="700" fill="#1a1a2e">PiperTtsEngine.initialize</text>
+    <text x="440" y="288" text-anchor="middle" fill="#6b7280">hasModel() ？</text>
+
+    <rect x="80" y="360" width="200" height="66" rx="12" fill="#FFFFFF" stroke="#DDD6FE" stroke-width="2"/>
+    <text x="180" y="386" text-anchor="middle" font-weight="700" fill="#1a1a2e">下载模型（~15MB）</text>
+    <text x="180" y="408" text-anchor="middle" fill="#6b7280">断点续传 · HuggingFace</text>
+
+    <rect x="380" y="360" width="200" height="66" rx="12" fill="#FFFFFF" stroke="#DDD6FE" stroke-width="2"/>
+    <text x="480" y="386" text-anchor="middle" font-weight="700" fill="#1a1a2e">创建 ONNX 会话</text>
+    <text x="480" y="408" text-anchor="middle" fill="#6b7280">state = READY</text>
+
+    <rect x="650" y="360" width="230" height="66" rx="12" fill="#FEF2F2" stroke="#DC2626" stroke-dasharray="6 4"/>
+    <text x="765" y="386" text-anchor="middle" font-weight="700" fill="#DC2626">下载失败 → 记日志不崩溃</text>
+    <text x="765" y="408" text-anchor="middle" fill="#B91C1C">下次启动 hasModel 为假自动重试</text>
+  </g>
+
+  <!-- arrows -->
+  <g stroke="#7C3AED" stroke-width="2" fill="none">
+    <path d="M 186 138 L 230 138" marker-end="url(#a)"/>
+    <path d="M 406 138 L 450 138" marker-end="url(#a)"/>
+    <path d="M 646 138 L 690 138" marker-end="url(#a)"/>
+    <path d="M 700 166 C 600 220 520 232 480 234" marker-end="url(#a)"/>
+    <path d="M 400 306 C 320 330 260 340 240 354" marker-end="url(#a)"/>
+    <path d="M 500 306 C 500 330 495 340 487 354" marker-end="url(#a)"/>
+  </g>
+  <g stroke="#DC2626" stroke-width="2" fill="none">
+    <path d="M 550 306 C 620 330 690 342 730 354" marker-end="url(#r)"/>
+  </g>
+  <text x="252" y="336" font-size="12" fill="#7C3AED">无模型</text>
+  <text x="497" y="332" font-size="12" fill="#7C3AED">有模型/下载完成</text>
+  <text x="600" y="330" font-size="12" fill="#DC2626">网络失败</text>
+
+  <!-- old bug note -->
+  <rect x="36" y="200" width="240" height="66" rx="12" fill="#FEF2F2" stroke="#DC2626" stroke-dasharray="6 4"/>
+  <text x="56" y="226" font-size="12" font-weight="700" fill="#DC2626">修复前：此调用缺失</text>
+  <text x="56" y="248" font-size="12" fill="#B91C1C">Piper 永远 PENDING → speak 抛</text>
+  <text x="56" y="262" font-size="12" fill="#B91C1C">"not initialized" → 逐级降级全灭</text>
+  <path d="M 276 233 L 330 180" stroke="#DC2626" stroke-width="2" stroke-dasharray="5 4" fill="none"/>
+</svg>
