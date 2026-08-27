@@ -8,7 +8,7 @@
   - 验收：单测绿；解码置信度均值正确
 - [x] 4. PaddleOcrProvider 编排接入 + resolveOcrEngine LOCAL 分支切换 + 懒加载单例
   - 验收：OcrEngine 接口不变；既有 Hybrid/OcrEngine 测试全绿
-- [ ] 5. 移除 ML Kit：gradle 依赖、MlKitOcrProvider、设置相关引用清理
+- [x] 5. 移除 ML Kit：gradle 依赖、MlKitOcrProvider、设置相关引用清理
   - 验收：APK 无 mlkit 条目（aapt2 核查）；全仓 grep 无 text-recognition
 - [ ] 6. 模拟器验收（主智能体执行）：中文/英文混合屏幕框选识别对照 + 耗时记录
   - 验收：中文识别可读、结果卡片正常、识别 ≤5s（模拟器）

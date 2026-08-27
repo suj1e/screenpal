@@ -260,7 +260,7 @@ fun OcrSettingsCard(
             Text("OCR 设置", style = MaterialTheme.typography.titleMedium)
             HorizontalDivider()
 
-            EngineOptionRow("LOCAL", "仅端侧 ML Kit（离线）", mode, onModeChange)
+            EngineOptionRow("LOCAL", "仅端侧 PP-OCR（离线）", mode, onModeChange)
             EngineOptionRow("CLOUD", "仅云端 Vision API（需 API Key）", mode, onModeChange)
             EngineOptionRow("HYBRID", "混合模式：端侧优先，低置信度走云端", mode, onModeChange)
 

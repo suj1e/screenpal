@@ -79,9 +79,7 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.foundation:foundation")
 
-    // OCR
-    // OCR (bundled Chinese model; works without Google Play services)
-    implementation("com.google.mlkit:text-recognition-chinese:16.0.1")
+    // OCR (bundled PP-OCR ONNX models, see assets/ocr; works fully offline)
 
     // TTS (ONNX Runtime)
     implementation("com.microsoft.onnxruntime:onnxruntime-android:1.17.0")
