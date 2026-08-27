@@ -32,6 +32,9 @@ import com.suj1e.screenpal.ocr.HybridOcrEngine
 import com.suj1e.screenpal.ocr.OcrEngine
 import com.suj1e.screenpal.ocr.OcrMode
 import com.suj1e.screenpal.ocr.paddle.PaddleOcrProvider
+import com.suj1e.screenpal.translate.BroadcastOutcome
+import com.suj1e.screenpal.translate.ChineseBroadcastPipeline
+import com.suj1e.screenpal.translate.DoubaoTranslateClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -106,6 +109,16 @@ class SelectionOverlayActivity : ComponentActivity() {
          */
         internal fun isSelectionLargeEnough(bounds: RectF, minSizePx: Float): Boolean =
             bounds.width() >= minSizePx || bounds.height() >= minSizePx
+
+        /**
+         * 结果卡 meta 标注映射：翻译发生 → 「AI 转译」；降级 → 「翻译不可用」；
+         * 中文直读 → 不标注。Exposed for JVM unit tests.
+         */
+        internal fun metaAnnotation(outcome: BroadcastOutcome): String? = when (outcome) {
+            BroadcastOutcome.Translated -> " · AI 转译"
+            BroadcastOutcome.FallbackOriginal -> " · 翻译不可用"
+            BroadcastOutcome.Direct -> null
+        }
     }
 
     private lateinit var screenshotBitmap: Bitmap
@@ -178,7 +191,8 @@ class SelectionOverlayActivity : ComponentActivity() {
 
     /**
      * Runs when the user confirms a selection rectangle:
-     * crop -> OCR (mode from settings) -> auto speak -> show result card.
+     * crop -> OCR (mode from settings) -> broadcast (translate-to-Chinese when
+     * needed, falling back to the original text) -> show result card.
      */
     internal fun onSelectionConfirmed(screenRect: Rect) {
         viewModel.selectionRect = screenRect
@@ -206,17 +220,29 @@ class SelectionOverlayActivity : ComponentActivity() {
                 cropped.recycle()
 
                 lastRecognizedText = result.text
+                // 卡片先出 OCR 原文；翻译完成后把主显更新为实际播报文本。
                 resultText.text = result.text.ifBlank { "（未识别到文字）" }
                 resultMeta.text = "置信度 %.0f%% · ${result.blocks.size} 个文本块".format(result.confidence * 100)
 
                 if (result.text.isNotBlank()) {
                     try {
-                        app.ttsManager.speak(result.text)
+                        val settings = app.settingsRepository.userSettings.first()
+                        val pipeline = ChineseBroadcastPipeline(
+                            DoubaoTranslateClient(settings.cloudApiKey)
+                        )
+                        val outcome = pipeline.broadcast(
+                            result.text,
+                            app.ttsManager,
+                            translationEnabled = settings.translationEnabled
+                        )
+                        // 主显播报文本（译文或降级原文），meta 追加标注。
+                        pipeline.lastSpokenText?.let { resultText.text = it }
+                        metaAnnotation(outcome)?.let { resultMeta.append(it) }
                     } catch (e: Exception) {
                         // Keep the recognized text visible; just annotate that
                         // speech is unavailable (e.g. device has no TTS engine).
                         Log.w(TAG, "TTS playback failed", e)
-                        runOnUiThread { resultMeta.append(" · 播报不可用") }
+                        resultMeta.append(" · 播报不可用")
                     }
                 }
             } catch (e: Exception) {
