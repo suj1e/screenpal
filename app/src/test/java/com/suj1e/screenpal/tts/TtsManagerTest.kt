@@ -123,6 +123,13 @@ class TtsManagerFallbackTest {
  * warm-up call (repeat-guard lives in PiperTtsEngine.isInitialized), and failures
  * are swallowed (fail-safe; only logged, degradation happens at speak time).
  */
+/**
+ * NOTE on naming: TtsManager.initialize() is an unconditional single delegation
+ * to the engine (TtsManager.kt) — real idempotency lives in PiperTtsEngine's
+ * `if (isInitialized) return` early exit, which currently has no unit test and
+ * is instead covered by the task-4 emulator acceptance (model lands once).
+ * These tests therefore pin "exactly-once delegation per call" + fail-safety.
+ */
 class TtsManagerInitializeContractTest {
 
     private fun buildManager(piper: TtsEngine): TtsManager = TtsManager(
@@ -132,7 +139,7 @@ class TtsManagerInitializeContractTest {
     )
 
     @Test
-    fun initialize_piperAlreadyInitialized_engineInitializeCalledExactlyOnce() =
+    fun initialize_delegatesToEngineExactlyOncePerCall() =
         kotlinx.coroutines.runBlocking {
             val piper = mockk<TtsEngine>(relaxed = true)
             every { piper.isInitialized } returns true

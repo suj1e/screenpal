@@ -28,6 +28,7 @@
 3. **TtsManager 契约测试**（TtsManagerTest 补充，mockk 注入 piperEngine，模式同现有用例）：
    - `initialize` 幂等：Piper 初始化成功后再次调用不重复初始化
    - Piper 初始化抛异常时 `initialize` 不向外抛（失败安全）
+   - 更正（review B1）：TtsManager.initialize 为无条件单次委托，真正的幂等守卫在 PiperTtsEngine 的 `isInitialized` 早退，**该守卫当前无单测覆盖**，由任务 4 模拟器验收兜底（piperEngine.initialize 的 src/main 调用方仅 warmUpTts 一处，每进程单次，双初始化竞态现实不存在）
 
 **取舍记录**：
 - 拒绝把预热放 `MainViewModel.init`：viewModelScope 生命周期与下载时长不匹配（见上）。
@@ -59,6 +60,7 @@
 - **风险：HuggingFace 不可达网络下载失败**——失败仅记日志不崩溃，下次启动 hasModel 为假自动重试（断点续传）；README 已有 FAQ。
 - **风险：下载占用用户流量**——模型 ~15MB 且为一次性成本，README 已披露；可接受。
 - **风险：`initialize` 与 `speak` 并发**（用户秒点悬浮球）：Piper 引擎内部 state 由 LOADING→READY 串行迁移，speak 在未 READY 时抛异常走降级，与现状一致，无新增竞态。
+- **风险备忘（review S1，当前不修）**：`runCatching` 会把 CancellationException 当普通失败记日志；今日 appScope 无任何取消触发点属死路径，未来若引入作用域取消机制，须先改为对 CE 重新抛出的封装。
 - **开放问题**：无。
 
 ## 测试策略
