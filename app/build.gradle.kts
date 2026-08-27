@@ -52,6 +52,7 @@ android {
     }
     testOptions {
         unitTests.isReturnDefaultValues = true
+        unitTests.isIncludeAndroidResources = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.10"

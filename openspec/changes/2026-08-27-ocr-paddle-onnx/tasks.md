@@ -1,6 +1,6 @@
 # 2026-08-27-ocr-paddle-onnx 任务清单
 
-- [ ] 1. 模型资产落地：assets/ocr/ 四文件（det/cls/rec onnx + 字典）+ AssetModelLoader（复制 filesDir 缓存）+ 资产完整性单测
+- [x] 1. 模型资产落地：assets/ocr/ 四文件（det/cls/rec onnx + 字典）+ AssetModelLoader（复制 filesDir 缓存）+ 资产完整性单测
   - 验收：构建通过；单测断言 4 文件存在、det<8MB/rec<15MB、字典 6623 行
 - [ ] 2. 检测后处理：DetPreProcessor + DbPostProcessor（二值化/连通域/包围框）+ 单测（合成概率图两文本块 → 2 box 且坐标 ±2px）
   - 验收：单测绿；空图返回空列表不崩溃
