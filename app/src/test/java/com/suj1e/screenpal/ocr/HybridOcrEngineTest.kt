@@ -9,7 +9,7 @@ class HybridOcrEngineTest {
 
     @Test
     fun hybrid_confidenceAboveThreshold_returnsMlKitResult() = kotlinx.coroutines.runBlocking {
-        val mlKitProvider = FakeMlKitProvider(OcrResult("text1", 0.9f, emptyList()))
+        val mlKitProvider = FakeLocalProvider(OcrResult("text1", 0.9f, emptyList()))
         val hybrid = HybridOcrEngine(mlKitProvider, null, confidenceThreshold = 0.75f)
 
         val result = hybrid.recognize(mockk<Bitmap>(relaxed = true))
@@ -18,7 +18,7 @@ class HybridOcrEngineTest {
 
     @Test
     fun hybrid_confidenceBelowThreshold_callsCloud() = kotlinx.coroutines.runBlocking {
-        val mlKitProvider = FakeMlKitProvider(OcrResult("text1", 0.5f, emptyList()))
+        val mlKitProvider = FakeLocalProvider(OcrResult("text1", 0.5f, emptyList()))
         val cloudProvider = FakeCloudProvider(OcrResult("text2", 0.95f, emptyList()))
         val hybrid = HybridOcrEngine(mlKitProvider, cloudProvider, confidenceThreshold = 0.75f)
 
@@ -28,7 +28,7 @@ class HybridOcrEngineTest {
 
     @Test
     fun hybrid_cloudNull_returnsMlKitResult() = kotlinx.coroutines.runBlocking {
-        val mlKitProvider = FakeMlKitProvider(OcrResult("text1", 0.5f, emptyList()))
+        val mlKitProvider = FakeLocalProvider(OcrResult("text1", 0.5f, emptyList()))
         val hybrid = HybridOcrEngine(mlKitProvider, null, confidenceThreshold = 0.75f)
 
         val result = hybrid.recognize(mockk<Bitmap>(relaxed = true))
@@ -36,7 +36,7 @@ class HybridOcrEngineTest {
     }
 }
 
-class FakeMlKitProvider(private val result: OcrResult) : OcrEngine {
+class FakeLocalProvider(private val result: OcrResult) : OcrEngine {
     override suspend fun recognize(bitmap: Bitmap): OcrResult = result
 }
 

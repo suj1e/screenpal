@@ -29,9 +29,9 @@ import com.suj1e.screenpal.ScreenPalApplication
 import com.suj1e.screenpal.ocr.CloudOcrConfig
 import com.suj1e.screenpal.ocr.CloudOcrProvider
 import com.suj1e.screenpal.ocr.HybridOcrEngine
-import com.suj1e.screenpal.ocr.MlKitOcrProvider
 import com.suj1e.screenpal.ocr.OcrEngine
 import com.suj1e.screenpal.ocr.OcrMode
+import com.suj1e.screenpal.ocr.paddle.PaddleOcrProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -237,15 +237,15 @@ class SelectionOverlayActivity : ComponentActivity() {
 
         return withContext(Dispatchers.Default) {
             when (mode) {
-                OcrMode.LOCAL -> MlKitOcrProvider()
+                OcrMode.LOCAL -> PaddleOcrProvider.getInstance(app)
                 OcrMode.CLOUD -> if (apiKey.isBlank()) {
                     Log.w(TAG, "Cloud OCR without API key; degrading to local")
-                    MlKitOcrProvider()
+                    PaddleOcrProvider.getInstance(app)
                 } else {
                     CloudOcrProvider(CloudOcrConfig(apiKey))
                 }
                 OcrMode.HYBRID -> HybridOcrEngine(
-                    mlKitProvider = MlKitOcrProvider(),
+                    PaddleOcrProvider.getInstance(app),
                     cloudProvider = apiKey.takeIf { it.isNotBlank() }?.let {
                         CloudOcrProvider(CloudOcrConfig(it))
                     },
