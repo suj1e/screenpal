@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">念念</string>
+    <string name="app_title">念念 · 屏幕识别 + 语音播报</string>
+    <string name="notification_floating_title">念念悬浮窗运行中</string>
+    <string name="channel_floating_name">念念悬浮窗</string>
+    <string name="channel_capture_name">念念截图</string>
     <string name="permission_overlay">悬浮窗权限</string>
     <string name="permission_overlay_desc">允许在其他应用上层显示悬浮球</string>
     <string name="permission_notification">通知权限</string>

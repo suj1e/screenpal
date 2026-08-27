@@ -229,7 +229,7 @@ class FloatingWindowService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "ScreenPal 悬浮窗",
+                getString(R.string.channel_floating_name),
                 NotificationManager.IMPORTANCE_LOW
             ).apply { setShowBadge(false) }
             getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
@@ -238,7 +238,7 @@ class FloatingWindowService : Service() {
 
     private fun buildNotification(): Notification =
         androidx.core.app.NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("ScreenPal 悬浮窗运行中")
+            .setContentTitle(getString(R.string.notification_floating_title))
             .setContentText("点击悬浮球框选识别屏幕文字")
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setOngoing(true)

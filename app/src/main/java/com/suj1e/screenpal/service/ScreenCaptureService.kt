@@ -121,7 +121,7 @@ class ScreenCaptureService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "ScreenPal Capture",
+                getString(R.string.channel_capture_name),
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
                 description = "Screen capture in progress"

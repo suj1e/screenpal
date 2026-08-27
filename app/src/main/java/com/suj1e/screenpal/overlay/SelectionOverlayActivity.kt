@@ -203,7 +203,7 @@ class SelectionOverlayActivity : ComponentActivity() {
         actions.addView(actionButton("停止播报") { (application as ScreenPalApplication).ttsManager.stop() })
         actions.addView(actionButton("复制") {
             val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-            cm.setPrimaryClip(ClipData.newPlainText("ScreenPal", lastRecognizedText))
+            cm.setPrimaryClip(ClipData.newPlainText("念念", lastRecognizedText))
             Toast.makeText(this@SelectionOverlayActivity, "已复制", Toast.LENGTH_SHORT).show()
         })
         actions.addView(actionButton("重新框选") {

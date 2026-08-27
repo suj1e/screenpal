@@ -1,6 +1,6 @@
-# ScreenPal
+# 念念（ScreenPal）
 
-Android 屏幕识别 + 语音播报 App。点击悬浮球框选屏幕区域，自动 OCR 识别文字并用 TTS 播报（Piper 神经语音优先，云端/系统兜底）。
+念念（ScreenPal）是一款 Android 屏幕识别 + 语音播报 App。点击悬浮球框选屏幕区域，自动 OCR 识别文字并用 TTS 播报（Piper 神经语音优先，云端/系统兜底）。
 
 ## 功能说明
 
