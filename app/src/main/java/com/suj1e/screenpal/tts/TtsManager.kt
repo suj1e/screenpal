@@ -77,9 +77,12 @@ class TtsManager(
     private suspend fun speakWithCloud(text: String, rate: Float, pitch: Float): Boolean {
         val engine = cloudProviderFactory() ?: return false
         return try {
-            engine.speak(text, rate, pitch)
+            // Replace-in-progress semantics: stop the previous engine before
+            // starting a new one, else overlapping plays cannot be stopped.
+            activeCloudEngine?.stop()
             activeEngine = engine
             activeCloudEngine = engine
+            engine.speak(text, rate, pitch)
             true
         } catch (e: Exception) {
             Log.w(TAG, "Cloud TTS failed; degrading", e)
@@ -117,36 +120,5 @@ class TtsManager(
     companion object {
         const val TAG = "TtsManager"
 
-        fun create(
-            context: Context,
-            settingsRepository: SettingsRepository,
-            piperEngine: PiperTtsEngine
-        ): TtsManager {
-            return TtsManager(
-                context = context,
-                piperEngine = piperEngine,
-                cloudProviderFactory = {
-                    val s = settingsRepository.userSettings.first()
-                    if (s.volcanoSpeechAppId.isNotBlank() && s.volcanoSpeechToken.isNotBlank()) {
-                        DoubaoTtsEngine(
-                            context = context,
-                            appId = s.volcanoSpeechAppId,
-                            token = s.volcanoSpeechToken,
-                            voiceType = s.ttsVoice.ifBlank { DoubaoTtsEngine.DEFAULT_VOICE_TYPE }
-                        )
-                    } else {
-                        null
-                    }
-                },
-                settingsProvider = {
-                    val s = settingsRepository.userSettings.first()
-                    TtsConfig(
-                        engineType = TtsEngineType.from(s.ttsEngine),
-                        rate = s.ttsRate,
-                        pitch = s.ttsPitch
-                    )
-                }
-            )
-        }
     }
 }

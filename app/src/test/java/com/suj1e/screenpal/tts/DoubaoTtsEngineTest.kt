@@ -45,11 +45,12 @@ import java.util.Base64
 class DoubaoTtsEngineRatioMappingTest {
 
     @Test
-    fun mapRatio_expandsUiRangeLinearlyOntoVolcanoRange() {
-        // UI slider [0.5, 2.0] -> Volcano [0.2, 3.0]
+    fun mapRatio_anchoredAtNormalIsIdentity() {
+        // UI slider [0.5, 2.0] -> Volcano [0.2, 3.0], anchored: 1.0 stays 1.0
         assertEquals(0.2f, DoubaoTtsEngine.mapRatio(0.5f), 1e-4f)
         assertEquals(3.0f, DoubaoTtsEngine.mapRatio(2.0f), 1e-4f)
-        assertEquals(1.6f, DoubaoTtsEngine.mapRatio(1.25f), 1e-4f)
+        assertEquals(1.0f, DoubaoTtsEngine.mapRatio(1.0f), 1e-4f)
+        assertEquals(1.5f, DoubaoTtsEngine.mapRatio(1.25f), 1e-4f)
     }
 
     @Test
@@ -89,7 +90,7 @@ class DoubaoTtsEngineRequestTest {
         val audio = obj["audio"]!!.jsonObject
         assertEquals(DoubaoTtsEngine.DEFAULT_VOICE_TYPE, audio["voice_type"]!!.jsonPrimitive.content)
         assertEquals("mp3", audio["encoding"]!!.jsonPrimitive.content)
-        assertEquals(1.6f, audio["speed_ratio"]!!.jsonPrimitive.content.toFloat(), 1e-4f)
+        assertEquals(1.5f, audio["speed_ratio"]!!.jsonPrimitive.content.toFloat(), 1e-4f)
         assertEquals(0.2f, audio["pitch_ratio"]!!.jsonPrimitive.content.toFloat(), 1e-4f)
 
         val request = obj["request"]!!.jsonObject

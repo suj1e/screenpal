@@ -53,6 +53,10 @@ class DoubaoTtsEngine(
 
     private var mediaPlayer: MediaPlayer? = null
 
+    /** Set by stop() so a synthesis started before the stop finishes mute. */
+    @Volatile
+    private var cancelled = false
+
     // Stateless network engine: nothing to load ahead of time, always ready.
     override val isInitialized: Boolean
         get() = true
@@ -63,7 +67,12 @@ class DoubaoTtsEngine(
 
     override suspend fun speak(text: String, rate: Float, pitch: Float) {
         if (text.isBlank()) return
+        cancelled = false
         val file = synthesizeToFile(text, rate, pitch)
+        if (cancelled) {
+            file.delete()
+            return
+        }
         playFile(file)
     }
 
@@ -139,14 +148,28 @@ class DoubaoTtsEngine(
 
     private fun playFile(file: File) {
         stop()
-        mediaPlayer = MediaPlayer().apply {
-            setDataSource(file.absolutePath)
-            prepare()
-            start()
+        val player = MediaPlayer()
+        try {
+            player.setDataSource(file.absolutePath)
+            // Completion releases the player and cleans the cached MP3.
+            player.setOnCompletionListener {
+                it.release()
+                file.delete()
+                if (mediaPlayer === it) mediaPlayer = null
+            }
+            player.prepare()
+            mediaPlayer = player
+            player.start()
+        } catch (e: Exception) {
+            player.release()
+            if (mediaPlayer === player) mediaPlayer = null
+            file.delete()
+            throw e
         }
     }
 
     override fun stop() {
+        cancelled = true
         mediaPlayer?.let { player ->
             try {
                 if (player.isPlaying) player.stop()
@@ -189,10 +212,16 @@ class DoubaoTtsEngine(
         const val MIN_RATIO = 0.2f
         const val MAX_RATIO = 3.0f
 
-        fun mapRatio(value: Float): Float {
-            val expanded = MIN_RATIO +
-                (value - UI_MIN_RATIO) * (MAX_RATIO - MIN_RATIO) / (UI_MAX_RATIO - UI_MIN_RATIO)
-            return expanded.coerceIn(MIN_RATIO, MAX_RATIO)
+        /**
+         * Piecewise mapping anchored at 1.0 (UI "normal" must stay 1.0):
+         * 0.5→0.2, 1.0→1.0, 2.0→3.0.
+         */
+        fun mapRatio(value: Float): Float = if (value <= 1f) {
+            (MIN_RATIO + (value - UI_MIN_RATIO) * (1f - MIN_RATIO) / (1f - UI_MIN_RATIO))
+                .coerceIn(MIN_RATIO, 1f)
+        } else {
+            (1f + (value - 1f) * (MAX_RATIO - 1f) / (UI_MAX_RATIO - 1f))
+                .coerceIn(1f, MAX_RATIO)
         }
 
         fun truncateUtf8(text: String, maxBytes: Int): String {
