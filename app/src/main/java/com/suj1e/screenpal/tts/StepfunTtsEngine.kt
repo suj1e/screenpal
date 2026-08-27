@@ -2,7 +2,6 @@ package com.suj1e.screenpal.tts
 
 import android.content.Context
 import android.media.MediaPlayer
-import android.util.Log
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.android.Android
 import io.ktor.client.plugins.HttpTimeout
@@ -163,7 +162,7 @@ class StepfunTtsEngine(
             if (rate == 1.0f) {
                 text
             } else {
-                "请以${"%.1f".format(rate)}倍语速朗读：$text"
+                String.format(java.util.Locale.US, "请以%.1f倍语速朗读：%s", rate, text)
             }
     }
 }

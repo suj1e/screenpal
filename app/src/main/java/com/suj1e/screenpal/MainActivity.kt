@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.suj1e.screenpal.ui.theme.ScreenPalTheme
+import com.suj1e.screenpal.vendor.VendorRouter
 import com.suj1e.screenpal.util.PermissionHelper
 
 class MainActivity : ComponentActivity() {
@@ -320,19 +321,19 @@ fun VendorSettingsCard(
             HorizontalDivider()
 
             EngineOptionRow(
-                "DOUBAO",
+                VendorRouter.VENDOR_DOUBAO,
                 "豆包（火山引擎：方舟 Key + 语音 AppID/Token）",
                 cloudVendor,
                 onVendorChange
             )
             EngineOptionRow(
-                "STEPFUN",
+                VendorRouter.VENDOR_STEPFUN,
                 "StepFun（阶跃星辰：一个 API Key 管三件事）",
                 cloudVendor,
                 onVendorChange
             )
 
-            if (cloudVendor.equals("STEPFUN", ignoreCase = true)) {
+            if (cloudVendor.equals(VendorRouter.VENDOR_STEPFUN, ignoreCase = true)) {
                 OutlinedTextField(
                     value = stepfunApiKey,
                     onValueChange = onStepfunApiKeyChange,

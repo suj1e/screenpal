@@ -239,9 +239,13 @@ class SelectionOverlayActivity : ComponentActivity() {
                                 translationEnabled = settings.translationEnabled
                             )
                         } else {
+                            // 缺凭据等价于"无翻译能力"：开关关或本就中文时语义是直读
+                            // （Direct，无标注），仅当确实需要翻译时才标注「翻译不可用」。
+                            val needsTranslation = settings.translationEnabled &&
+                                !com.suj1e.screenpal.translate.ChineseHeuristic.isMostlyChinese(result.text)
                             Log.w(TAG, "所选在线服务商缺少转译凭据；跳过翻译直读原文")
                             app.ttsManager.speak(result.text)
-                            BroadcastOutcome.FallbackOriginal
+                            if (needsTranslation) BroadcastOutcome.FallbackOriginal else BroadcastOutcome.Direct
                         }
                         // 主显播报文本（译文或降级原文），标注后附原文小字供校对。
                         metaAnnotation(outcome)?.let { resultMeta.append(it) }

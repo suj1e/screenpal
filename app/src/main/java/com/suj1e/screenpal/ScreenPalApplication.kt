@@ -7,6 +7,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.suj1e.screenpal.tts.PiperTtsEngine
 import com.suj1e.screenpal.tts.SystemTtsEngine
 import com.suj1e.screenpal.tts.TtsManager
+import com.suj1e.screenpal.vendor.VendorRouter
 import com.suj1e.screenpal.util.SettingsRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -39,7 +40,7 @@ open class ScreenPalApplication : Application() {
             // 由 TtsManager 落 Piper → 系统兜底。
             cloudProviderFactory = {
                 val s = settingsRepository.userSettings.first()
-                com.suj1e.screenpal.vendor.VendorRouter.createTtsEngine(s, this)
+                VendorRouter.createTtsEngine(s, this)
             },
             systemEngineProvider = { SystemTtsEngine(this) },
             settingsProvider = {
