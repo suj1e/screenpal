@@ -29,17 +29,22 @@
             </intent-filter>
         </activity>
 
-        <!-- MediaProjection consent dialog host (transparent) -->
+        <!-- MediaProjection consent dialog host (transparent, own task so the
+             host app is never dragged to the foreground over the user's screen) -->
         <activity
             android:name=".service.CaptureConsentActivity"
             android:exported="false"
-            android:theme="@style/Theme.ScreenPal.Overlay"
-            android:excludeFromRecents="true" />
+            android:taskAffinity=""
+            android:excludeFromRecents="true"
+            android:theme="@style/Theme.ScreenPal.Overlay" />
 
-        <!-- Selection Overlay Activity -->
+        <!-- Selection Overlay Activity: own task, keeps whatever the user was
+             doing visible behind it until the captured screenshot is drawn -->
         <activity
             android:name=".overlay.SelectionOverlayActivity"
             android:exported="false"
+            android:taskAffinity=""
+            android:excludeFromRecents="true"
             android:theme="@style/Theme.ScreenPal.Overlay"
             android:screenOrientation="portrait" />
 

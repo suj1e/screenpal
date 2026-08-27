@@ -16,7 +16,6 @@ import android.util.Log
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
-import android.view.WindowManager
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -53,14 +52,9 @@ class SelectionOverlayActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        window.setFlags(
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-        )
-        window.setFlags(
-            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
-            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
-        )
+        // NOTE: do NOT set FLAG_NOT_FOCUSABLE here (a leftover from the
+        // floating-window service requirements) — a focusable activity must
+        // keep receiving BACK so the user can always leave this screen.
 
         val screenshotUri = intent.getParcelableExtra<Uri>(EXTRA_SCREENSHOT_URI)
         screenshotBitmap = screenshotUri?.let { uri ->

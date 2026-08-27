@@ -33,6 +33,8 @@ class CaptureConsentActivity : Activity() {
 
         if (resultCode == RESULT_OK && data != null) {
             // Chain straight into capture + selection so the tap feels atomic.
+            // Use the app context: this activity finishes right away and must
+            // not be the context that later launches the selection screen.
             val receiver = object : android.os.ResultReceiver(null) {
                 override fun onReceiveResult(resultCode: Int, resultData: Bundle?) {
                     if (resultCode == ScreenCaptureService.RESULT_OK) {
@@ -41,22 +43,23 @@ class CaptureConsentActivity : Activity() {
                     }
                 }
             }
-            ScreenCaptureService.start(this, receiver, resultCode, data)
+            ScreenCaptureService.start(applicationContext, receiver, resultCode, data)
         } else {
             // Consent denied: bring the ball back for another try.
-            FloatingWindowService.start(this)
+            FloatingWindowService.start(applicationContext)
         }
 
         finish()
     }
 
     private fun openSelection(screenshotUri: android.net.Uri) {
-        startActivity(
-            Intent(this, com.suj1e.screenpal.overlay.SelectionOverlayActivity::class.java).apply {
+        applicationContext.startActivity(
+            Intent(applicationContext, com.suj1e.screenpal.overlay.SelectionOverlayActivity::class.java).apply {
                 putExtra(
                     com.suj1e.screenpal.overlay.SelectionOverlayActivity.EXTRA_SCREENSHOT_URI,
                     screenshotUri
                 )
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
         )
     }
