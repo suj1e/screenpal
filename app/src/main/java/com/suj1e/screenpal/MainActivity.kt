@@ -138,6 +138,15 @@ fun MainScreen(
                 Text(if (state.floatingWindowEnabled) "停止悬浮窗" else "启动悬浮窗")
             }
 
+            VendorSettingsCard(
+                cloudVendor = state.cloudVendor,
+                stepfunApiKey = state.stepfunApiKey,
+                stepfunVoice = state.stepfunVoice,
+                onVendorChange = viewModel::setCloudVendor,
+                onStepfunApiKeyChange = viewModel::setStepfunApiKey,
+                onStepfunVoiceChange = viewModel::setStepfunVoice
+            )
+
             TtsSettingsCard(
                 engine = state.ttsEngine,
                 rate = state.ttsRate,
@@ -288,6 +297,58 @@ private fun EngineOptionRow(value: String, label: String, selected: String, onSe
     Row(verticalAlignment = Alignment.CenterVertically) {
         RadioButton(selected = selected.equals(value, true), onClick = { onSelect(value) })
         Text(label)
+    }
+}
+
+/**
+ * 在线服务商选择：豆包 / StepFun 并列可选，选定谁用谁。
+ * StepFun 选中时显示其凭据区（API Key + 音色）；豆包凭据区保持原样
+ * （语音播报设置的火山 AppID/Token + OCR 设置的方舟 Key）。
+ */
+@Composable
+fun VendorSettingsCard(
+    cloudVendor: String,
+    stepfunApiKey: String,
+    stepfunVoice: String,
+    onVendorChange: (String) -> Unit,
+    onStepfunApiKeyChange: (String) -> Unit,
+    onStepfunVoiceChange: (String) -> Unit
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("在线服务商", style = MaterialTheme.typography.titleMedium)
+            HorizontalDivider()
+
+            EngineOptionRow(
+                "DOUBAO",
+                "豆包（火山引擎：方舟 Key + 语音 AppID/Token）",
+                cloudVendor,
+                onVendorChange
+            )
+            EngineOptionRow(
+                "STEPFUN",
+                "StepFun（阶跃星辰：一个 API Key 管三件事）",
+                cloudVendor,
+                onVendorChange
+            )
+
+            if (cloudVendor.equals("STEPFUN", ignoreCase = true)) {
+                OutlinedTextField(
+                    value = stepfunApiKey,
+                    onValueChange = onStepfunApiKeyChange,
+                    label = { Text("StepFun API Key（TTS + 云 OCR + 转译共用）") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = stepfunVoice,
+                    onValueChange = onStepfunVoiceChange,
+                    label = { Text("音色（voice，默认 wenying）") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+            }
+        }
     }
 }
 

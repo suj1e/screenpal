@@ -26,6 +26,9 @@ data class MainUiState(
     val volcanoSpeechAppId: String = "",
     val volcanoSpeechToken: String = "",
     val ttsVoice: String = "BV001_streaming",
+    val cloudVendor: String = "DOUBAO",
+    val stepfunApiKey: String = "",
+    val stepfunVoice: String = "wenying",
     val overlayPermissionGranted: Boolean = false,
     val notificationPermissionGranted: Boolean = false
 ) {
@@ -62,7 +65,10 @@ class MainViewModel(
                     translationEnabled = settings.translationEnabled,
                     volcanoSpeechAppId = settings.volcanoSpeechAppId,
                     volcanoSpeechToken = settings.volcanoSpeechToken,
-                    ttsVoice = settings.ttsVoice
+                    ttsVoice = settings.ttsVoice,
+                    cloudVendor = settings.cloudVendor,
+                    stepfunApiKey = settings.stepfunApiKey,
+                    stepfunVoice = settings.stepfunVoice
                 )
                 maybeAutoStartFloatingService()
             }
@@ -119,6 +125,9 @@ class MainViewModel(
             volcanoSpeechAppId = volcanoSpeechAppId,
             volcanoSpeechToken = volcanoSpeechToken,
             ttsVoice = ttsVoice,
+            cloudVendor = cloudVendor,
+            stepfunApiKey = stepfunApiKey,
+            stepfunVoice = stepfunVoice,
             // Runtime-only permission badges are not persisted; keep current view.
             overlayPermissionGranted = state.overlayPermissionGranted,
             notificationPermissionGranted = state.notificationPermissionGranted
@@ -136,7 +145,10 @@ class MainViewModel(
             translationEnabled = translationEnabled,
             volcanoSpeechAppId = volcanoSpeechAppId,
             volcanoSpeechToken = volcanoSpeechToken,
-            ttsVoice = ttsVoice
+            ttsVoice = ttsVoice,
+            cloudVendor = cloudVendor,
+            stepfunApiKey = stepfunApiKey,
+            stepfunVoice = stepfunVoice
         )
 
     fun setTtsEngine(engine: String) = update { it.copy(ttsEngine = engine) }
@@ -156,6 +168,12 @@ class MainViewModel(
     fun setVolcanoToken(token: String) = update { it.copy(volcanoSpeechToken = token) }
 
     fun setTtsVoice(voice: String) = update { it.copy(ttsVoice = voice) }
+
+    fun setCloudVendor(vendor: String) = update { it.copy(cloudVendor = vendor) }
+
+    fun setStepfunApiKey(key: String) = update { it.copy(stepfunApiKey = key) }
+
+    fun setStepfunVoice(voice: String) = update { it.copy(stepfunVoice = voice) }
 
     /**
      * Start the floating window only when required permissions are granted.
