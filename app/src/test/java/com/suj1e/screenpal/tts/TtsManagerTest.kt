@@ -1,5 +1,8 @@
 package com.suj1e.screenpal.tts
 
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -112,5 +115,43 @@ class TtsManagerFallbackTest {
 
         assertTrue(piper.stopped)
         assertTrue(systemFake.stopped)
+    }
+}
+
+/**
+ * Contract tests for TtsManager.initialize(): exactly one engine init attempt per
+ * warm-up call (repeat-guard lives in PiperTtsEngine.isInitialized), and failures
+ * are swallowed (fail-safe; only logged, degradation happens at speak time).
+ */
+class TtsManagerInitializeContractTest {
+
+    private fun buildManager(piper: TtsEngine): TtsManager = TtsManager(
+        context = mockk(relaxed = true),
+        piperEngine = piper,
+        settingsProvider = { TtsConfig(TtsEngineType.PIPER, 1.0f, 1.0f) }
+    )
+
+    @Test
+    fun initialize_piperAlreadyInitialized_engineInitializeCalledExactlyOnce() =
+        kotlinx.coroutines.runBlocking {
+            val piper = mockk<TtsEngine>(relaxed = true)
+            every { piper.isInitialized } returns true
+            val manager = buildManager(piper)
+
+            manager.initialize()
+
+            coVerify(exactly = 1) { piper.initialize() }
+        }
+
+    @Test
+    fun initialize_piperInitThrows_doesNotPropagate() = kotlinx.coroutines.runBlocking {
+        val piper = mockk<TtsEngine>(relaxed = true)
+        coEvery { piper.initialize() } throws RuntimeException("piper init boom")
+        val manager = buildManager(piper)
+
+        // Fail-safe: must not throw outward; PiperTtsEngine marks itself FAILED.
+        manager.initialize()
+
+        coVerify(exactly = 1) { piper.initialize() }
     }
 }
