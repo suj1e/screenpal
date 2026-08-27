@@ -55,6 +55,9 @@ class SelectionOverlayActivity : ComponentActivity() {
         /** Minimum bounding-box size (width OR height) for a valid selection. */
         internal const val MIN_SELECTION_SIZE_DP = 48f
 
+        /** Delay before the first-entry hint fades out. */
+        internal const val HINT_DELAY_MS = 3000L
+
         /**
          * Pure sampling filter for lasso MOVE events: [candidate] joins the
          * stroke only when it is at least [minDistancePx] away from the last
@@ -112,6 +115,8 @@ class SelectionOverlayActivity : ComponentActivity() {
     private lateinit var resultMeta: TextView
     private val viewModel = SelectionViewModel()
     private var lastRecognizedText: String = ""
+    private var hintText: TextView? = null
+    private var hintFadeRunnable: Runnable? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -141,7 +146,34 @@ class SelectionOverlayActivity : ComponentActivity() {
                 Gravity.BOTTOM
             ).apply { setMargins(0, 0, 0, 0) })
         }
+        addFirstEntryHint(root)
         setContentView(root)
+    }
+
+    /** First-entry coaching hint: "用手指圈出要朗读的文字", fades out after 3s. */
+    private fun addFirstEntryHint(root: android.widget.FrameLayout) {
+        val hint = TextView(this).apply {
+            text = "用手指圈出要朗读的文字"
+            textSize = 15f
+            setTextColor(Color.WHITE)
+            setBackgroundColor(Color.parseColor("#66000000"))
+            setPadding(40, 24, 40, 24)
+            gravity = Gravity.CENTER
+        }
+        root.addView(hint, android.widget.FrameLayout.LayoutParams(
+            android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,
+            android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,
+            Gravity.CENTER_HORIZONTAL or Gravity.TOP
+        ).apply { topMargin = 120 })
+
+        hintText = hint
+        val fade = Runnable {
+            hint.animate().alpha(0f).setDuration(400).withEndAction {
+                hint.visibility = View.GONE
+            }
+        }
+        hintFadeRunnable = fade
+        hint.postDelayed(fade, HINT_DELAY_MS)
     }
 
     /**
@@ -447,6 +479,11 @@ class SelectionOverlayActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        hintText?.let { hint ->
+            hintFadeRunnable?.let { hint.removeCallbacks(it) }
+        }
+        hintText = null
+        hintFadeRunnable = null
         (application as ScreenPalApplication).ttsManager.stop()
         if (!screenshotBitmap.isRecycled) {
             screenshotBitmap.recycle()
