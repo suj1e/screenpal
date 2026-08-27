@@ -4,7 +4,11 @@ import com.suj1e.screenpal.tts.TtsManager
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
@@ -125,5 +129,23 @@ class ChineseBroadcastPipelineTest {
         }
 
         coVerify(exactly = 1) { tts.speak(any()) }
+    }
+
+    @Test
+    fun `outer cancellation propagates and never falls back`() = runTest {
+
+        val tts = mockk<TtsManager>(relaxed = true)
+        val client = mockk<TranslateService> {
+            coEvery { translate(any()) } coAnswers { kotlinx.coroutines.awaitCancellation() }
+        }
+        val pipeline = ChineseBroadcastPipeline(client)
+
+        val job = launch {
+            pipeline.broadcast("hello world", tts, translationEnabled = true)
+        }
+        advanceTimeBy(1000)
+        job.cancelAndJoin()
+
+        coVerify(exactly = 0) { tts.speak(any()) }
     }
 }

@@ -235,9 +235,17 @@ class SelectionOverlayActivity : ComponentActivity() {
                             app.ttsManager,
                             translationEnabled = settings.translationEnabled
                         )
-                        // 主显播报文本（译文或降级原文），meta 追加标注。
-                        pipeline.lastSpokenText?.let { resultText.text = it }
+                        // 主显播报文本（译文或降级原文），标注后附原文小字供校对。
                         metaAnnotation(outcome)?.let { resultMeta.append(it) }
+                        pipeline.lastSpokenText?.let { spoken ->
+                            if (spoken != result.text) {
+                                resultText.text = spoken
+                                val original = result.text.take(120) + if (result.text.length > 120) "…" else ""
+                                resultMeta.text = resultMeta.text.toString() + " · 原文：" + original
+                            }
+                        }
+                    } catch (e: kotlinx.coroutines.CancellationException) {
+                        throw e
                     } catch (e: Exception) {
                         // Keep the recognized text visible; just annotate that
                         // speech is unavailable (e.g. device has no TTS engine).
