@@ -2,26 +2,26 @@
 
 ## Why
 
-TTS 去 Google 化：现有 Cloud 引擎为 Google Cloud TTS。产品决策接国内在线 TTS（音质优先于 Piper 的离线合成），选百度智能云短文本在线合成——与国内云 OCR 同一百度云账号体系（一套 Key 管两服务），有免费额度，发音人（"语音包"）丰富。Piper 保留为离线兜底（开源非 Google）。
+TTS 去 Google 化并接国内头部方案：选**豆包语音合成（火山引擎语音技术）**——大模型音色为国内第一梯队（含豆包 App 同款音色），有免费额度与低价计费，用户拍板以豆包替代先前方案的百度。Piper 保留为离线兜底（开源非 Google）。与 OCR/翻译的火山方舟 Key 分属两个控制台（语音技术 vs 方舟），共两个凭据。
 
 ## What Changes
 
-- 新增 `BaiduTtsEngine`（实现 `TtsEngine`）：REST 合成 → MP3 落盘 → MediaPlayer 播放（Piper 同款播放路径）
-- 降级链重排：**百度在线 → Piper → System**（原 Google Cloud 位置由百度顶替，TtsEngineType.CLOUD 语义改为百度）
-- 删除 `GoogleCloudTtsProvider`；设置文案「云端 Google Cloud TTS（需 API Key）」→「百度在线语音（需 API Key）」
-- 复用百度云 access_token 缓存（与 OCR 共用 BaiduAuthClient）
-- 被否选项：讯飞在线（音质更优但 HMAC 鉴权复杂 + 独立账号，记录为后续可选引擎）；离线语音包（商用授权采购，用户已否）
+- 新增 `DoubaoTtsEngine`（实现 `TtsEngine`）：火山语音 HTTP API（`openspeech.bytedance.com/api/v1/tts`，AppID + Access Token 鉴权）合成 MP3 → MediaPlayer 播放（复用 Piper 播放路径）
+- 降级链重排：**豆包在线 → Piper → System**（`TtsEngineType.CLOUD` 语义改为豆包）
+- 删除 `GoogleCloudTtsProvider`；设置文案改「豆包在线语音（火山引擎）」+ 音色（语音包）下拉
+- 音色选择：`UserSettings.ttsVoice: String`（voice_type，默认豆包中文女声，合法值**待确认**以火山文档为准）
+- 被否选项：百度在线 TTS（用户否）、讯飞离线包（商用授权）、PaddleSpeech 端侧（音质/体积）
 
 ## 成功标准
 
-- 引擎选「百度在线」且有 Key：识别后播报为选定中文发音人，无 Google 残留
-- 百度失败（无网/配额）自动降级 Piper；全链路单测覆盖降级矩阵
+- 引擎选「豆包在线」且配置 AppID/Token：播报为所选音色，无 Google 残留
+- 豆包失败（无网/配额/鉴权）自动降级 Piper；降级矩阵单测覆盖
 - 45+ 项既有测试全绿
 
 ## 优先级
 
-- P2：播报主路径升级（Piper 兜底可用性已被 piper-warmup 修复保障）。
+- P2：播报主路径升级（Piper 兜底已被 piper-warmup 修复保障）。
 
 ## 依赖
 
-- 弱依赖:openspec/changes/2026-08-27-ocr-domestic-cloud/（共用 BaiduAuthClient 与 cloudApiSecret 设置键；该 change 未实施时本 change 自带轻量 token 获取亦可）
+- 无硬依赖（自备火山引擎语音技术控制台 AppID + Access Token，**待用户开通**）

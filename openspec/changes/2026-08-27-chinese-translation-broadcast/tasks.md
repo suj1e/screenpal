@@ -1,14 +1,14 @@
 # 2026-08-27-chinese-translation-broadcast 任务清单
 
-- [ ] 1. ChineseHeuristic + 单测（纯中/纯英/混合/数字符号）
-  - 验收：四用例绿；中文判定阈值 0.5
-- [ ] 2. BaiduTranslateClient（签名/请求/解析/错误码）+ 单测
-  - 验收：签名与官方示例一致；多段 trans_result 拼接正确
-- [ ] 3. ChineseBroadcastPipeline + 降级矩阵单测（开关×Key×超时五用例）
-  - 验收：五用例绿；3s 超时降级原文
-- [ ] 4. 卡片双语 UI（译文主显+原文小字）+ 设置三键（开关/APP ID/密钥）
-  - 验收：持久化往返；卡片两种呈现正确
-- [ ] 5. SelectionOverlayActivity 接入 pipeline（播报译文路径替换）
-  - 验收：既有链路测试适配全绿
-- [ ] 6. 模拟器验收（主智能体执行）：英文框选→中文播报+双语卡片；中文直读；关开关；无 Key 降级
-  - 验收：logcat（翻译请求有无）+ 听感 + 截图四路径
+- [ ] 1. ChineseHeuristic + 四用例单测
+  - 验收：阈值 0.5 判定正确
+- [ ] 2. DoubaoTranslateClient（方舟请求/解析/错误码）+ 单测
+  - 验收：mock 绿；多行译文拼接正确
+- [ ] 3. ChineseBroadcastPipeline + 降级矩阵五用例
+  - 验收：5s 超时降级原文；开关生效
+- [ ] 4. 卡片双语 UI + 设置开关（方舟 Key 复用）
+  - 验收：持久化往返；两种卡片呈现正确
+- [ ] 5. SelectionOverlayActivity 接入 pipeline
+  - 验收：既有测试适配全绿
+- [ ] 6. 模拟器验收（主智能体执行）：英文→中文播报+双语卡；中文直读；关开关；无 Key 降级
+  - 验收：logcat + 听感 + 截图
