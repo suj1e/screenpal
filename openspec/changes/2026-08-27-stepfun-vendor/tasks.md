@@ -2,7 +2,7 @@
 
 - [x] 1. StepfunTtsEngine（audio/speech）+ 单测
   - 验收：请求组装/音色/失败映射正确
-- [ ] 2. StepfunOcrProvider + StepfunTranslateClient + 单测
+- [x] 2. StepfunOcrProvider + StepfunTranslateClient + 单测
   - 验收：视觉 OCR 与转译解析正确
 - [ ] 3. VendorRouter + 三处接线 + 路由矩阵单测
   - 验收：DOUBAO/STEPFUN 路由正确；缺凭据落 Piper 兜底
