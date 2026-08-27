@@ -4,7 +4,7 @@ import android.app.Application
 import android.media.projection.MediaProjection
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
-import com.suj1e.screenpal.tts.GoogleCloudTtsProvider
+import com.suj1e.screenpal.tts.DoubaoTtsEngine
 import com.suj1e.screenpal.tts.PiperTtsEngine
 import com.suj1e.screenpal.tts.SystemTtsEngine
 import com.suj1e.screenpal.tts.TtsManager
@@ -38,7 +38,16 @@ open class ScreenPalApplication : Application() {
             piperEngine = PiperTtsEngine(this),
             cloudProviderFactory = {
                 val s = settingsRepository.userSettings.first()
-                s.cloudApiKey.takeIf { it.isNotBlank() }?.let { GoogleCloudTtsProvider(it) }
+                if (s.volcanoSpeechAppId.isNotBlank() && s.volcanoSpeechToken.isNotBlank()) {
+                    DoubaoTtsEngine(
+                        context = this,
+                        appId = s.volcanoSpeechAppId,
+                        token = s.volcanoSpeechToken,
+                        voiceType = s.ttsVoice.ifBlank { DoubaoTtsEngine.DEFAULT_VOICE_TYPE }
+                    )
+                } else {
+                    null
+                }
             },
             systemEngineProvider = { SystemTtsEngine(this) },
             settingsProvider = {
