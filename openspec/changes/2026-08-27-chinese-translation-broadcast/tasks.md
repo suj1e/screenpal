@@ -2,7 +2,7 @@
 
 - [x] 1. ChineseHeuristic + 四用例单测
   - 验收：阈值 0.5 判定正确
-- [ ] 2. DoubaoTranslateClient（方舟 chat/completions AI 转译：system/温度/截断）+ 单测
+- [x] 2. DoubaoTranslateClient（方舟 chat/completions AI 转译：system/温度/截断）+ 单测
   - 验收：mock 绿；多行译文拼接正确
 - [ ] 3. ChineseBroadcastPipeline + 降级矩阵五用例
   - 验收：5s 超时降级原文；开关生效
