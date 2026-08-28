@@ -141,38 +141,40 @@ fun MainScreen(
 
             VendorSettingsCard(
                 cloudVendor = state.cloudVendor,
+                arkApiKey = state.cloudApiKey,
+                volcanoAppId = state.volcanoSpeechAppId,
+                volcanoToken = state.volcanoSpeechToken,
+                volcanoVoice = state.ttsVoice,
                 stepfunApiKey = state.stepfunApiKey,
                 stepfunVoice = state.stepfunVoice,
                 onVendorChange = viewModel::setCloudVendor,
+                onArkApiKeyChange = viewModel::setCloudApiKey,
+                onVolcanoAppIdChange = viewModel::setVolcanoAppId,
+                onVolcanoTokenChange = viewModel::setVolcanoToken,
+                onVolcanoVoiceChange = viewModel::setTtsVoice,
                 onStepfunApiKeyChange = viewModel::setStepfunApiKey,
                 onStepfunVoiceChange = viewModel::setStepfunVoice
             )
 
             TtsSettingsCard(
                 engine = state.ttsEngine,
+                cloudVendor = state.cloudVendor,
                 rate = state.ttsRate,
                 pitch = state.ttsPitch,
-                volcanoAppId = state.volcanoSpeechAppId,
-                volcanoToken = state.volcanoSpeechToken,
-                ttsVoice = state.ttsVoice,
                 onEngineChange = viewModel::setTtsEngine,
                 onRateChange = viewModel::setTtsRate,
-                onPitchChange = viewModel::setTtsPitch,
-                onVolcanoAppIdChange = viewModel::setVolcanoAppId,
-                onVolcanoTokenChange = viewModel::setVolcanoToken,
-                onTtsVoiceChange = viewModel::setTtsVoice
+                onPitchChange = viewModel::setTtsPitch
             )
 
             OcrSettingsCard(
                 mode = state.ocrMode,
-                apiKey = state.cloudApiKey,
-                onModeChange = viewModel::setOcrMode,
-                onApiKeyChange = viewModel::setCloudApiKey
+                cloudVendor = state.cloudVendor,
+                onModeChange = viewModel::setOcrMode
             )
 
             ToggleCard(
                 title = "中文播报",
-                description = if (state.translationEnabled) "外文自动转译为简体中文播报（火山方舟）" else "已关闭：识别到什么语言就读什么语言",
+                description = if (state.translationEnabled) "外文经所选服务商转译为简体中文播报" else "已关闭：识别到什么语言就读什么语言",
                 checked = state.translationEnabled,
                 onCheckedChange = viewModel::setTranslationEnabled
             )
@@ -240,50 +242,23 @@ fun ToggleCard(
 @Composable
 fun TtsSettingsCard(
     engine: String,
+    cloudVendor: String,
     rate: Float,
     pitch: Float,
-    volcanoAppId: String,
-    volcanoToken: String,
-    ttsVoice: String,
     onEngineChange: (String) -> Unit,
     onRateChange: (Float) -> Unit,
-    onPitchChange: (Float) -> Unit,
-    onVolcanoAppIdChange: (String) -> Unit,
-    onVolcanoTokenChange: (String) -> Unit,
-    onTtsVoiceChange: (String) -> Unit
+    onPitchChange: (Float) -> Unit
 ) {
+    val onlineLabel = if (cloudVendor.equals(VendorRouter.VENDOR_STEPFUN, ignoreCase = true))
+        "在线语音（StepFun，凭据在「在线服务商」）" else "在线语音（豆包，凭据在「在线服务商」）"
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("语音播报设置", style = MaterialTheme.typography.titleMedium)
             HorizontalDivider()
 
-            EngineOptionRow("PIPER", "Piper 离线（推荐，需下载模型）", engine, onEngineChange)
-            EngineOptionRow("CLOUD", "豆包在线语音（火山引擎，需 AppID+Token）", engine, onEngineChange)
+            EngineOptionRow("CLOUD", onlineLabel, engine, onEngineChange)
+            EngineOptionRow("PIPER", "Piper 离线（无网/无凭据兜底）", engine, onEngineChange)
             EngineOptionRow("SYSTEM", "系统 TTS（兜底）", engine, onEngineChange)
-
-            if (engine.equals("CLOUD", ignoreCase = true)) {
-                OutlinedTextField(
-                    value = volcanoAppId,
-                    onValueChange = onVolcanoAppIdChange,
-                    label = { Text("火山引擎 AppID") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-                OutlinedTextField(
-                    value = volcanoToken,
-                    onValueChange = onVolcanoTokenChange,
-                    label = { Text("火山引擎 Token") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-                OutlinedTextField(
-                    value = ttsVoice,
-                    onValueChange = onTtsVoiceChange,
-                    label = { Text("音色（voice_type，默认 BV001_streaming）") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-            }
 
             Text("语速：%.1fx".format(rate))
             Slider(value = rate, onValueChange = onRateChange, valueRange = 0.5f..2.0f, steps = 5)
@@ -302,42 +277,87 @@ private fun EngineOptionRow(value: String, label: String, selected: String, onSe
 }
 
 /**
- * 在线服务商选择：豆包 / StepFun 并列可选，选定谁用谁。
- * StepFun 选中时显示其凭据区（API Key + 音色）；豆包凭据区保持原样
- * （语音播报设置的火山 AppID/Token + OCR 设置的方舟 Key）。
+ * 在线服务商选择：豆包 / StepFun 并列可选，选定谁用谁——在线 TTS / 云 OCR
+ * 增强 / AI 转译三项在线能力全部由所选服务商提供。凭据区随所选切换，
+ * 各家凭据只出现一次、互不混排。
  */
 @Composable
 fun VendorSettingsCard(
     cloudVendor: String,
+    arkApiKey: String,
+    volcanoAppId: String,
+    volcanoToken: String,
+    volcanoVoice: String,
     stepfunApiKey: String,
     stepfunVoice: String,
     onVendorChange: (String) -> Unit,
+    onArkApiKeyChange: (String) -> Unit,
+    onVolcanoAppIdChange: (String) -> Unit,
+    onVolcanoTokenChange: (String) -> Unit,
+    onVolcanoVoiceChange: (String) -> Unit,
     onStepfunApiKeyChange: (String) -> Unit,
     onStepfunVoiceChange: (String) -> Unit
 ) {
+    val isStepfun = cloudVendor.equals(VendorRouter.VENDOR_STEPFUN, ignoreCase = true)
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("在线服务商", style = MaterialTheme.typography.titleMedium)
             HorizontalDivider()
 
-            EngineOptionRow(
-                VendorRouter.VENDOR_DOUBAO,
-                "豆包（火山引擎：方舟 Key + 语音 AppID/Token）",
-                cloudVendor,
-                onVendorChange
-            )
-            EngineOptionRow(
-                VendorRouter.VENDOR_STEPFUN,
-                "StepFun（阶跃星辰：一个 API Key 管三件事）",
-                cloudVendor,
-                onVendorChange
+            Text(
+                "选定的服务商包办：在线语音播报 · 云 OCR 增强 · AI 转译",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            if (cloudVendor.equals(VendorRouter.VENDOR_STEPFUN, ignoreCase = true)) {
+            EngineOptionRow(
+                VendorRouter.VENDOR_DOUBAO,
+                "豆包（火山引擎）",
+                cloudVendor,
+                onVendorChange
+            )
+            if (!isStepfun) {
+                OutlinedTextField(
+                    value = arkApiKey,
+                    onValueChange = onArkApiKeyChange,
+                    label = { Text("火山方舟 API Key（视觉 OCR + AI 转译）") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = volcanoAppId,
+                    onValueChange = onVolcanoAppIdChange,
+                    label = { Text("火山语音 AppID（在线 TTS）") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = volcanoToken,
+                    onValueChange = onVolcanoTokenChange,
+                    label = { Text("火山语音 Access Token") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = volcanoVoice,
+                    onValueChange = onVolcanoVoiceChange,
+                    label = { Text("音色（voice_type，默认 BV001_streaming）") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+            }
+
+            EngineOptionRow(
+                VendorRouter.VENDOR_STEPFUN,
+                "StepFun（阶跃星辰）",
+                cloudVendor,
+                onVendorChange
+            )
+            if (isStepfun) {
                 OutlinedTextField(
                     value = stepfunApiKey,
                     onValueChange = onStepfunApiKeyChange,
-                    label = { Text("StepFun API Key（TTS + 云 OCR + 转译共用）") },
+                    label = { Text("StepFun API Key（TTS + 视觉 OCR + 转译共用）") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -356,26 +376,18 @@ fun VendorSettingsCard(
 @Composable
 fun OcrSettingsCard(
     mode: String,
-    apiKey: String,
-    onModeChange: (String) -> Unit,
-    onApiKeyChange: (String) -> Unit
+    cloudVendor: String,
+    onModeChange: (String) -> Unit
 ) {
+    val vendorName = if (cloudVendor.equals(VendorRouter.VENDOR_STEPFUN, ignoreCase = true)) "StepFun" else "豆包"
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("OCR 设置", style = MaterialTheme.typography.titleMedium)
             HorizontalDivider()
 
             EngineOptionRow("LOCAL", "仅端侧 PP-OCR（离线）", mode, onModeChange)
-            EngineOptionRow("CLOUD", "仅云端 Vision API（需 API Key）", mode, onModeChange)
-            EngineOptionRow("HYBRID", "混合模式：端侧优先，低置信度走云端", mode, onModeChange)
-
-            OutlinedTextField(
-                value = apiKey,
-                onValueChange = onApiKeyChange,
-                label = { Text("火山方舟 API Key（云 OCR + 转译共用）") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
+            EngineOptionRow("CLOUD", "仅云端 $vendorName 视觉（凭据在「在线服务商」）", mode, onModeChange)
+            EngineOptionRow("HYBRID", "混合模式：端侧优先，低置信度走云端 $vendorName", mode, onModeChange)
         }
     }
 }
