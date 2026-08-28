@@ -14,3 +14,6 @@
 Thumbs.db
 build/
 local.properties
+
+# Kotlin compiler local state
+.kotlin/
