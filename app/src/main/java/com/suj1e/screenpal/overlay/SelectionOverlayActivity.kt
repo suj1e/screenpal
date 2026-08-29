@@ -36,6 +36,7 @@ import com.suj1e.screenpal.ocr.OcrEngine
 import com.suj1e.screenpal.ocr.OcrMode
 import com.suj1e.screenpal.ocr.StepfunOcrProvider
 import com.suj1e.screenpal.ocr.paddle.PaddleOcrProvider
+import com.suj1e.screenpal.translate.BroadcastMode
 import com.suj1e.screenpal.translate.BroadcastOutcome
 import com.suj1e.screenpal.translate.ChineseBroadcastPipeline
 import com.suj1e.screenpal.translate.StepfunTranslateClient
@@ -184,13 +185,19 @@ class SelectionOverlayActivity : ComponentActivity() {
             RectF(minOf(x1, x2), minOf(y1, y2), maxOf(x1, x2), maxOf(y1, y2))
 
         /**
-         * 结果卡 meta 标注映射：翻译发生 → 「AI 转译」；降级 → 「翻译不可用」；
-         * 中文直读 → 不标注。Exposed for JVM unit tests.
+         * 结果卡 meta 标注映射（2026-08-29-broadcast-mode 起按播报模式区分降级语义）：
+         * 翻译发生 → 「AI 转译」；讲解成功 → 「AI 讲解」；降级按 mode 分流——TRANSLATE
+         * 是「翻译不可用」，EXPLAIN 是「AI 讲解不可用」（讲解失败 ≠ 翻译失败）；中文
+         * 直读/空文本 → 不标注。Exposed for JVM unit tests.
          */
-        internal fun metaAnnotation(outcome: BroadcastOutcome): String? = when (outcome) {
+        internal fun metaAnnotation(
+            outcome: BroadcastOutcome,
+            mode: BroadcastMode = BroadcastMode.TRANSLATE
+        ): String? = when (outcome) {
             BroadcastOutcome.Translated -> " · AI 转译"
             BroadcastOutcome.EXPLAINED -> " · AI 讲解"
-            BroadcastOutcome.FallbackOriginal -> " · 翻译不可用"
+            BroadcastOutcome.FallbackOriginal ->
+                if (mode == BroadcastMode.EXPLAIN) " · AI 讲解不可用" else " · 翻译不可用"
             BroadcastOutcome.Direct -> null
         }
 
@@ -437,27 +444,33 @@ class SelectionOverlayActivity : ComponentActivity() {
                 if (result.text.isNotBlank()) {
                     try {
                         val settings = app.settingsRepository.userSettings.first()
+                        // 播报模式（2026-08-29-broadcast-mode）：从设置解析（脏值回退
+                        // TRANSLATE），决定管道分支与降级标注语义。
+                        val mode = BroadcastMode.fromStorageValue(settings.broadcastMode)
                         // 转译客户端直连 StepFun；缺凭据（null）直接落「播原文」语义，
-                        // 与管道内翻译失败降级一致（结果卡标注「翻译不可用」）。
+                        // 与管道内 AI 失败降级一致（降级标注按 mode 分流）。
                         val pipeline = translateClient(settings)
                             ?.let { ChineseBroadcastPipeline(it) }
                         val outcome = if (pipeline != null) {
                             pipeline.broadcast(
                                 result.text,
                                 app.ttsManager,
-                                translationEnabled = settings.translationEnabled
+                                translationEnabled = settings.translationEnabled,
+                                mode = mode
                             )
                         } else {
-                            // 缺凭据等价于"无翻译能力"：开关关或本就中文时语义是直读
-                            // （Direct，无标注），仅当确实需要翻译时才标注「翻译不可用」。
-                            val needsTranslation = settings.translationEnabled &&
+                            // 缺凭据等价于"无 AI 能力"：EXPLAIN 显式选择即总是走 AI
+                            //（一律讲解不可用）；TRANSLATE 维持原语义——开关关或本就
+                            // 中文时直读（Direct，无标注），确实需要翻译才标「翻译不可用」。
+                            val needsAi = mode == BroadcastMode.EXPLAIN ||
+                                settings.translationEnabled &&
                                 !com.suj1e.screenpal.translate.ChineseHeuristic.isMostlyChinese(result.text)
-                            Log.w(TAG, "StepFun 转译凭据缺失；跳过翻译直读原文")
+                            Log.w(TAG, "StepFun AI 凭据缺失；跳过转译/讲解直读原文")
                             app.ttsManager.speak(result.text)
-                            if (needsTranslation) BroadcastOutcome.FallbackOriginal else BroadcastOutcome.Direct
+                            if (needsAi) BroadcastOutcome.FallbackOriginal else BroadcastOutcome.Direct
                         }
-                        // 主显播报文本（译文或降级原文），标注后附原文小字供校对。
-                        metaAnnotation(outcome)?.let { resultMeta.append(it) }
+                        // 主显播报文本（译文/讲解或降级原文），标注后附原文小字供校对。
+                        metaAnnotation(outcome, mode)?.let { resultMeta.append(it) }
                         pipeline?.lastSpokenText?.let { spoken ->
                             if (spoken != result.text) {
                                 resultText.text = spoken
