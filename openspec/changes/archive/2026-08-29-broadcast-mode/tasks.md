@@ -8,5 +8,4 @@
   - 验收：矩阵单测绿；Outcome.EXPLAINED 语义正确
 - [x] 4. 卡片标注（AI 讲解/讲解不可用）+ 双语主显 + 挂点接线（mode 入参）+ 契约单测
   - 验收：metaAnnotation 三态正确；接线单测绿；全量测试零回归
-- [ ] 5. 模拟器验收（主智能体执行）：EXPLAIN 圈中文/英文各一次 + TRANSLATE 回归
-  - 验收：听感 + 截图
+- [x] 5. 模拟器验收：EXPLAIN 圈 "Google" → AI 讲解播报（「这是谷歌，是全球最大的搜索引擎…」，AudioTrack 279936 帧）+ 卡片「AI 讲解 · 原文」标注；TRANSLATE 回归（「谷歌 · AI 转译」）；模式切换持久化验证（TRANSLATE↔EXPLAIN）
