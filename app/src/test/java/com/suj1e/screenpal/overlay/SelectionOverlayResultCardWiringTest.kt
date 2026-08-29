@@ -1,5 +1,6 @@
 package com.suj1e.screenpal.overlay
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -119,6 +120,68 @@ class SelectionOverlayResultCardWiringTest {
         assertFalse(
             "actionButton 内不得再出现裸 textSize = 13f",
             overlaySrc.contains("textSize = 13f")
+        )
+    }
+
+    // ---- 识别文本滚动区（2026-08-29-result-card-polish tasks 2）----
+
+    @Test
+    fun maxHeight_is40PercentOfScreen() {
+        assertEquals(320, SelectionOverlayActivity.resultTextMaxHeightPx(800))
+        assertEquals(864, SelectionOverlayActivity.resultTextMaxHeightPx(2160))
+        assertEquals(0, SelectionOverlayActivity.resultTextMaxHeightPx(0))
+    }
+
+    @Test
+    fun maxHeight_fractionIsGroundTruth() {
+        assertEquals(
+            "限高比例必须是屏高 40%",
+            0.4f,
+            SelectionOverlayActivity.RESULT_TEXT_MAX_HEIGHT_FRACTION,
+            0f
+        )
+    }
+
+    @Test
+    fun textArea_wrappedInScrollView_withMeasureClamp() {
+        assertTrue(
+            "识别文本必须包在 ScrollView 内滚动",
+            overlaySrc.contains("object : ScrollView(this)")
+        )
+        assertTrue(
+            "超出 40% 屏高必须被 onMeasure clamp 截断",
+            overlaySrc.contains("setMeasuredDimension(measuredWidth, maxTextHeightPx)")
+        )
+        assertTrue(
+            "限高必须按运行时屏高动态计算",
+            overlaySrc.contains("resultTextMaxHeightPx(resources.displayMetrics.heightPixels)")
+        )
+    }
+
+    @Test
+    fun textArea_maxLinesRemoved_selectableKept() {
+        assertFalse(
+            "maxLines = 8 必须移除（改滚动）",
+            overlaySrc.contains("maxLines = 8")
+        )
+        assertTrue(
+            "长按选择文本能力必须保留",
+            overlaySrc.contains("setTextIsSelectable(true)")
+        )
+    }
+
+    @Test
+    fun textArea_scrollerAddedBeforeMetaAndActions() {
+        assertTrue(
+            "文本必须挂在滚动区里",
+            overlaySrc.contains("textScroll.addView(resultText)")
+        )
+        val scrollAdds = overlaySrc.indexOf("card.addView(textScroll)")
+        val metaAdds = overlaySrc.indexOf("card.addView(resultMeta)")
+        val actionsAdds = overlaySrc.indexOf("card.addView(actions)")
+        assertTrue(
+            "卡片顺序必须是 滚动文本 → meta → 按钮行",
+            scrollAdds in 0 until metaAdds && metaAdds in 0 until actionsAdds
         )
     }
 }

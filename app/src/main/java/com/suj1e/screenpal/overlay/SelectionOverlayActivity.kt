@@ -25,6 +25,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -236,6 +237,15 @@ class SelectionOverlayActivity : ComponentActivity() {
 
         /** 胶囊按钮文字字号（sp）。 */
         internal const val PILL_TEXT_SP = 15f
+
+        /** 识别文本滚动区最大高度占屏高比例（40%）。 */
+        internal const val RESULT_TEXT_MAX_HEIGHT_FRACTION = 0.4f
+
+        /**
+         * 识别文本滚动区最大高度（px）：屏高 40%。Exposed for JVM unit tests。
+         */
+        internal fun resultTextMaxHeightPx(screenHeightPx: Int): Int =
+            (screenHeightPx * RESULT_TEXT_MAX_HEIGHT_FRACTION).toInt()
 
         /**
          * 常态胶囊背景（程序化工厂，无资源文件）：白底 + 品牌紫描边 + 胶囊圆角。
@@ -514,13 +524,25 @@ class SelectionOverlayActivity : ComponentActivity() {
         resultText = TextView(this).apply {
             setTextColor(Color.WHITE)
             textSize = 16f
-            maxLines = 8
             setTextIsSelectable(true)
         }
         resultMeta = TextView(this).apply {
             setTextColor(Color.parseColor("#99FFFFFF"))
             textSize = 12f
         }
+
+        // 识别文本滚动区（2026-08-29-result-card-polish）：maxLines 改 ScrollView
+        // 滚动，限高屏高 40%（onMeasure 超限截断），长文不再挤压按钮行。
+        val maxTextHeightPx = resultTextMaxHeightPx(resources.displayMetrics.heightPixels)
+        val textScroll = object : ScrollView(this) {
+            override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+                super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+                if (measuredHeight > maxTextHeightPx) {
+                    setMeasuredDimension(measuredWidth, maxTextHeightPx)
+                }
+            }
+        }
+        textScroll.addView(resultText)
 
         // 胶囊按钮（2026-08-29-result-card-polish）：白底品牌紫、1.5dp 40% 透明描边、
         // 999dp 圆角、44dp 高、等权重均分、水平 4dp 间距、15sp medium；按压反馈由
@@ -563,7 +585,7 @@ class SelectionOverlayActivity : ComponentActivity() {
         })
         actions.addView(actionButton("完成") { finish() })
 
-        card.addView(resultText)
+        card.addView(textScroll)
         card.addView(resultMeta)
         card.addView(actions)
         return card
