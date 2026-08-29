@@ -20,7 +20,8 @@
 |------|------|----------|
 | 悬浮窗（SYSTEM_ALERT_WINDOW） | 在其他应用上方显示悬浮球 | 主界面「去授权」跳转系统设置 |
 | 通知（POST_NOTIFICATIONS） | Android 13+ 前台服务通知 | 首次启动前台服务 |
-| 屏幕录制（MediaProjection） | 截取当前屏幕 | 每次点击悬浮球时系统弹窗授权 |
+| 无障碍（AccessibilityService，免弹窗截屏） | 点悬浮球零弹窗识读屏幕文字的主路径 | 主界面「去开启」跳转系统无障碍设置 |
+| 屏幕录制（MediaProjection） | 截取当前屏幕（无障碍未开启或 Android 10 及以下时的系统弹窗路径） | 每次点击悬浮球时系统弹窗授权 |
 | 前台服务 | 悬浮窗保活与截图过程通知 | 随服务启动 |
 
 MediaProjection 授权数据仅保存在内存中（Application 单例），App 进程结束后需重新授权。
@@ -63,6 +64,9 @@ gradle lint
 
 **Q：小米/华为手机上悬浮窗开启后不显示？**
 A：MIUI/EMUI 还需在「安全中心 → 权限管理」中允许「后台弹出界面」。App 已内置厂商检测（PermissionHelper.getOemSpecialIntent），后续版本将提供一键直达。
+
+**Q：为何首次点悬浮球弹系统录制授权？**
+A：MediaProjection 授权仅存内存，进程重启后系统要求重新确认（安全要求）；开启「无障碍权限」后可完全避开该弹窗。
 
 **Q：点击悬浮球没反应？**
 A：多半是 MediaProjection 授权被拒绝或已失效，重新点击一次即可再次弹出授权；部分 ROM 会静默拒绝，请检查通知栏错误提示。
