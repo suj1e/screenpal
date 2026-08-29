@@ -18,8 +18,17 @@ object AccessibilityHelper {
     /** 系统无障碍设置页 Intent（引导对话框「去开启」出口）。 */
     fun settingsIntent(): Intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
 
-    /** 本应用截屏服务是否已被系统启用（AccessibilityManager 实时判定）。 */
+    /** 本应用截屏服务是否已被系统启用。 */
     fun isEnabled(context: Context): Boolean {
+        // 首选：Settings.Secure 的启用服务字符串（全 ROM 可靠——部分 ROM 的
+        // 快捷开关/临时授权不回显在 AccessibilityManager 列表里）。
+        val enabled = Settings.Secure.getString(
+            context.contentResolver,
+            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+        )
+        if (enabled?.contains("${context.packageName}") == true) return true
+
+        // 兜底：AccessibilityManager 实时列表（处理相对类名回显）。
         val manager =
             context.getSystemService(Context.ACCESSIBILITY_SERVICE) as? AccessibilityManager
                 ?: return false
@@ -28,7 +37,6 @@ object AccessibilityHelper {
             .any { info ->
                 val serviceInfo = info.resolveInfo?.serviceInfo ?: return@any false
                 val actual = ComponentName(serviceInfo.packageName, serviceInfo.name)
-                // 系统/部分 ROM 回显相对类名（.service.X），短扁平串兜底比对。
                 actual == expected ||
                     actual.flattenToShortString() == expected.flattenToShortString()
             }
