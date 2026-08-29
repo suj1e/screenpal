@@ -12,9 +12,13 @@ import android.graphics.Path
 import android.graphics.PointF
 import android.graphics.Rect
 import android.graphics.RectF
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.StateListDrawable
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
+import android.util.StateSet
 import android.view.Gravity
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
@@ -40,6 +44,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.roundToInt
 
 class SelectionOverlayActivity : ComponentActivity() {
 
@@ -202,6 +207,95 @@ class SelectionOverlayActivity : ComponentActivity() {
         internal fun translateClient(settings: UserSettings): TranslateService? =
             settings.stepfunApiKey.takeIf { it.isNotBlank() }
                 ?.let { StepfunTranslateClient(apiKey = it) }
+
+        // ---- 结果卡胶囊按钮（2026-08-29-result-card-polish）----
+
+        /** 品牌紫文字色：#FF7B68EE（不透明），与选区高亮描边同色系。 */
+        internal const val PILL_TEXT_COLOR = 0xFF7B68EE.toInt()
+
+        /**
+         * 胶囊描边色：品牌紫 40% 透明度（alpha 0x66 + #7B68EE）。
+         * design 记法「0x66FF7B68EE」按 Android ARGB 语义取 alpha 0x66 + 紫 RGB。
+         */
+        internal const val PILL_STROKE_COLOR = 0x667B68EE
+
+        /** pressed 叠底色：8% 黑（#14000000）。 */
+        internal const val PILL_PRESSED_OVERLAY = 0x14000000
+
+        /** 胶囊圆角（dp）：远超按钮对角线，等效全圆角胶囊。 */
+        internal const val PILL_CORNER_RADIUS_DP = 999f
+
+        /** 胶囊描边宽（dp）。 */
+        internal const val PILL_STROKE_DP = 1.5f
+
+        /** 胶囊按钮高（dp）。 */
+        internal const val PILL_HEIGHT_DP = 44
+
+        /** 胶囊按钮水平 margin（dp）。 */
+        internal const val PILL_MARGIN_DP = 4
+
+        /** 胶囊按钮文字字号（sp）。 */
+        internal const val PILL_TEXT_SP = 15f
+
+        /**
+         * 常态胶囊背景（程序化工厂，无资源文件）：白底 + 品牌紫描边 + 胶囊圆角。
+         * Exposed for JVM unit tests (Robolectric)。
+         */
+        internal fun pillBackground(
+            strokeColor: Int,
+            strokeWidthPx: Int,
+            cornerRadiusPx: Float
+        ): GradientDrawable = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = cornerRadiusPx
+            setColor(Color.WHITE)
+            setStroke(strokeWidthPx, strokeColor)
+        }
+
+        /**
+         * source-over 叠色：[overlay]（含 alpha）叠在 [base] 上的合成结果。
+         * 用于 pressed 叠底的白底合成（白 + 8% 黑 = #EBEBEB），视觉等价
+         * LayerDrawable 叠加。Exposed for JVM unit tests。
+         */
+        internal fun overlayColor(base: Int, overlay: Int): Int {
+            val srcA = Color.alpha(overlay) / 255f
+            val dstA = Color.alpha(base) / 255f
+            val outA = srcA + dstA * (1 - srcA)
+            fun channel(src: Int, dst: Int): Int {
+                if (outA == 0f) return 0
+                val value = (src * srcA + dst * dstA * (1 - srcA)) / outA
+                return value.roundToInt().coerceIn(0, 255)
+            }
+            return Color.argb(
+                (outA * 255).roundToInt().coerceIn(0, 255),
+                channel(Color.red(overlay), Color.red(base)),
+                channel(Color.green(overlay), Color.green(base)),
+                channel(Color.blue(overlay), Color.blue(base))
+            )
+        }
+
+        /**
+         * 按钮背景（含按压反馈）：常态白底胶囊；pressed = 白底叠
+         * [PILL_PRESSED_OVERLAY] 的合成色胶囊（同描边同圆角）。pressed 态必须
+         * 先于兜底态注册（StateListDrawable 取第一个命中态）。
+         * Exposed for JVM unit tests (Robolectric)。
+         */
+        internal fun pillPressed(
+            strokeColor: Int,
+            strokeWidthPx: Int,
+            cornerRadiusPx: Float
+        ): StateListDrawable = StateListDrawable().apply {
+            addState(
+                intArrayOf(android.R.attr.state_pressed),
+                GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = cornerRadiusPx
+                    setColor(overlayColor(Color.WHITE, PILL_PRESSED_OVERLAY))
+                    setStroke(strokeWidthPx, strokeColor)
+                }
+            )
+            addState(StateSet.WILD_CARD, pillBackground(strokeColor, strokeWidthPx, cornerRadiusPx))
+        }
     }
 
     private lateinit var screenshotBitmap: Bitmap
