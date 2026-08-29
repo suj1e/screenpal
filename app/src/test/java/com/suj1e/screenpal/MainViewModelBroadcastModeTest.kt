@@ -93,9 +93,14 @@ class MainViewModelBroadcastModeTest {
         viewModel.setBroadcastMode("EXPLAIN")
         viewModel.setTtsRate(1.5f)
 
+        // 轮询条件必须是本次两次写入的合取：DataStore 文件跨测试类共享，
+        // ttsRate 可能被前一测试类遗留为 1.5f——只等 rate 会在 setter 落盘前
+        // 提前放行，读到旧 broadcastMode 而误报 flaky（2026-08-29-broadcast-mode 修复）。
         val deadline = System.currentTimeMillis() + 5_000
         var settings = runBlocking { repository.userSettings.first() }
-        while (settings.ttsRate != 1.5f && System.currentTimeMillis() < deadline) {
+        while ((settings.broadcastMode != "EXPLAIN" || settings.ttsRate != 1.5f) &&
+            System.currentTimeMillis() < deadline
+        ) {
             Thread.sleep(20)
             settings = runBlocking { repository.userSettings.first() }
         }
@@ -103,6 +108,6 @@ class MainViewModelBroadcastModeTest {
         assertEquals(1.5f, settings.ttsRate)
 
         // Self-clean: the DataStore file is shared across tests.
-        runBlocking { repository.update { copy(broadcastMode = "TRANSLATE") } }
+        runBlocking { repository.update { copy(broadcastMode = "TRANSLATE", ttsRate = 1.0f) } }
     }
 }
