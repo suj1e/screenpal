@@ -42,6 +42,40 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class SelectionOverlayActivity : ComponentActivity() {
+
+    /**
+     * 遮罩状态机状态（2026-08-29-selection-mode，两模式统一）：
+     * DRAWING = 绘制期（初始/进行中/拒选/重新框选），无全屏遮罩，截图原亮度；
+     * CONFIRMED = 确认后，全屏 #8F000000 + 按选区挖孔（套索挖包围盒、矩形挖选中矩形）。
+     * 嵌套在类体（非 companion）以便测试用 SelectionOverlayActivity.SelectionPhase 引用。
+     */
+    internal enum class SelectionPhase {
+        /** 绘制期（也是初始态）。 */
+        DRAWING,
+
+        /** 已确认：圈外变暗。 */
+        CONFIRMED;
+
+        companion object {
+            val initial: SelectionPhase = DRAWING
+        }
+    }
+
+    /** 驱动遮罩状态机的动作（与触摸/按钮语义一一对应）。 */
+    internal enum class SelectionPhaseAction {
+        /** 落笔开始新选区（DOWN）。 */
+        GESTURE_START,
+
+        /** 选区有效，确认（UP 过门槛）。 */
+        CONFIRM,
+
+        /** 选区过小被拒（UP 未过门槛，震动）。 */
+        REJECT,
+
+        /**「重新框选」按钮。 */
+        RESELECT
+    }
+
     companion object {
         const val EXTRA_SCREENSHOT_URI = "extra_screenshot_uri"
         const val EXTRA_SELECTION_RECT = "extra_selection_rect"
@@ -53,14 +87,33 @@ class SelectionOverlayActivity : ComponentActivity() {
         /** Width of the visible purple lasso trace. */
         internal const val STROKE_LINE_DP = 4f
 
-        /** Width of the mask hole punched along the lasso trace. */
-        internal const val HOLE_STROKE_DP = 24f
+        /** Width of the white secondary stroke that keeps the trace readable on light backgrounds. */
+        internal const val SECONDARY_STROKE_DP = 2f
 
         /** Minimum bounding-box size (width OR height) for a valid selection. */
         internal const val MIN_SELECTION_SIZE_DP = 48f
 
         /** Delay before the first-entry hint fades out. */
         internal const val HINT_DELAY_MS = 3000L
+
+        /**
+         * Pure mask state machine (2026-08-29-selection-mode): any gesture
+         * start / reject / reselect lands back in DRAWING (no mask); only a
+         * confirmed selection holds CONFIRMED. Exposed for JVM unit tests.
+         */
+        internal fun nextSelectionPhase(
+            current: SelectionPhase,
+            action: SelectionPhaseAction
+        ): SelectionPhase = when (action) {
+            SelectionPhaseAction.CONFIRM -> SelectionPhase.CONFIRMED
+            SelectionPhaseAction.GESTURE_START,
+            SelectionPhaseAction.REJECT,
+            SelectionPhaseAction.RESELECT -> SelectionPhase.DRAWING
+        }
+
+        /** 绘制期不画全屏遮罩（截图原亮度）；确认后才圈外变暗。Exposed for JVM unit tests. */
+        internal fun shouldDrawMask(phase: SelectionPhase): Boolean =
+            phase == SelectionPhase.CONFIRMED
 
         /**
          * Pure sampling filter for lasso MOVE events: [candidate] joins the
@@ -408,14 +461,11 @@ class SelectionOverlayActivity : ComponentActivity() {
             style = Paint.Style.FILL
         }
 
-        // Punches the semi-transparent mask away along the lasso trace so the
-        // screenshot underneath stays fully visible (bright band).
-        private val holePaint = Paint().apply {
+        // CONFIRMED 态挖孔：按选区（套索包围盒 / 矩形）整块 DST_OUT 挖透遮罩，
+        // 与裁剪语义一致（挖的就是将被识别的区域）。
+        private val confirmedHolePaint = Paint().apply {
             color = Color.BLACK
-            style = Paint.Style.STROKE
-            strokeWidth = HOLE_STROKE_DP * resources.displayMetrics.density
-            strokeCap = Paint.Cap.ROUND
-            strokeJoin = Paint.Join.ROUND
+            style = Paint.Style.FILL
             xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.DST_OUT)
         }
 
@@ -428,11 +478,25 @@ class SelectionOverlayActivity : ComponentActivity() {
             isAntiAlias = true
         }
 
+        // 白色副描边（2dp，画在紫描边之上成芯线）：浅背景看紫边、深背景看白芯，
+        // 绘制期无遮罩时保证笔迹/矩形在任意壁纸上可辨。
+        private val secondaryStrokePaint = Paint().apply {
+            color = Color.WHITE
+            style = Paint.Style.STROKE
+            strokeWidth = SECONDARY_STROKE_DP * resources.displayMetrics.density
+            strokeCap = Paint.Cap.ROUND
+            strokeJoin = Paint.Join.ROUND
+            isAntiAlias = true
+        }
+
         // RECT 模式（2026-08-29-selection-mode）：半透明紫填充 + 共用 4dp 紫描边。
         private val rectFillPaint = Paint().apply {
             color = Color.parseColor("#337B68EE")
             style = Paint.Style.FILL
         }
+
+        /** 遮罩状态机当前状态（两模式共用）：初始即绘制期，无遮罩。 */
+        private var phase: SelectionPhase = SelectionPhase.initial
 
         /** Sampled lasso points (>= [MIN_SAMPLE_DISTANCE_DP] apart). */
         private val strokePoints = mutableListOf<PointF>()
@@ -448,6 +512,7 @@ class SelectionOverlayActivity : ComponentActivity() {
 
         fun resetForReselection() {
             isSelecting = false
+            phase = nextSelectionPhase(phase, SelectionPhaseAction.RESELECT)
             clearStroke()
             clearRect()
         }
@@ -470,37 +535,48 @@ class SelectionOverlayActivity : ComponentActivity() {
             val dstRect = Rect(0, 0, width, height)
             canvas.drawBitmap(screenshotBitmap, srcRect, dstRect, null)
 
-            if (mode == SelectionMode.RECT) {
-                drawRectSelection(canvas)
-            } else {
-                drawLassoSelection(canvas)
+            // 遮罩时序（两模式统一）：绘制期只画选区高亮（原亮度）；确认后
+            // 全屏变暗 + 按选区挖孔，再在挖孔上叠选区高亮保持所见一致。
+            if (shouldDrawMask(phase)) {
+                drawConfirmedMask(canvas)
             }
+            drawSelectionVisuals(canvas)
         }
 
-        /** LASSO：单层遮罩 + 沿笔迹 DST_OUT 挖孔 + 紫色笔迹（时序重做见任务 3）。 */
-        private fun drawLassoSelection(canvas: Canvas) {
-            // Single offscreen layer: fill the mask, punch the hole along the
-            // trace with DST_OUT, then paint the purple trace on top. One
-            // saveLayer per frame, no per-pixel bitmap work.
+        /** CONFIRMED：单层 saveLayer 内画全屏遮罩并 DST_OUT 挖透选区。 */
+        private fun drawConfirmedMask(canvas: Canvas) {
+            val hole = confirmedHoleRect() ?: return
             val saveCount = canvas.saveLayer(0f, 0f, width.toFloat(), height.toFloat(), null)
             canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), overlayPaint)
-            if (strokePoints.isNotEmpty()) {
-                canvas.drawPath(strokePath, holePaint)
-                canvas.drawPath(strokePath, strokePaint)
-            }
+            canvas.drawRect(hole, confirmedHolePaint)
             canvas.restoreToCount(saveCount)
         }
 
-        /** RECT：只画进行中的拖拽矩形（半透明紫填充 + 4dp 紫描边），无遮罩。 */
-        private fun drawRectSelection(canvas: Canvas) {
-            val rect = dragRect ?: return
-            canvas.drawRect(rect, rectFillPaint)
-            canvas.drawRect(rect, strokePaint)
+        /** 挖孔形状与裁剪语义一致：套索挖包围盒，矩形挖选中矩形；无选区不挖。 */
+        private fun confirmedHoleRect(): RectF? = when (mode) {
+            SelectionMode.RECT -> dragRect
+            SelectionMode.LASSO -> computeBounds(strokePoints)
+        }
+
+        /** 选区高亮：套索紫描边+白芯 / 矩形半透明填充+描边+白芯（两模式同规格）。 */
+        private fun drawSelectionVisuals(canvas: Canvas) {
+            if (mode == SelectionMode.RECT) {
+                val rect = dragRect ?: return
+                canvas.drawRect(rect, rectFillPaint)
+                canvas.drawRect(rect, strokePaint)
+                canvas.drawRect(rect, secondaryStrokePaint)
+            } else {
+                if (strokePoints.isEmpty()) return
+                canvas.drawPath(strokePath, strokePaint)
+                canvas.drawPath(strokePath, secondaryStrokePaint)
+            }
         }
 
         override fun onTouchEvent(event: MotionEvent): Boolean {
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
+                    // 落笔即回绘制期：确认态的遮罩立刻退场。
+                    phase = nextSelectionPhase(phase, SelectionPhaseAction.GESTURE_START)
                     isSelecting = true
                     if (mode == SelectionMode.RECT) {
                         val (x, y) = clampPoint(event.x, event.y)
@@ -542,6 +618,7 @@ class SelectionOverlayActivity : ComponentActivity() {
                 }
                 MotionEvent.ACTION_CANCEL -> {
                     isSelecting = false
+                    phase = nextSelectionPhase(phase, SelectionPhaseAction.REJECT)
                     if (mode == SelectionMode.RECT) {
                         clearRect()
                     } else {
@@ -563,6 +640,8 @@ class SelectionOverlayActivity : ComponentActivity() {
             val rect = dragRect
             val minSizePx = MIN_SELECTION_SIZE_DP * resources.displayMetrics.density
             if (rect != null && isSelectionLargeEnough(rect, minSizePx)) {
+                phase = nextSelectionPhase(phase, SelectionPhaseAction.CONFIRM)
+                invalidate()
                 onSelectionConfirmed(
                     Rect(
                         rect.left.toInt(), rect.top.toInt(),
@@ -570,6 +649,7 @@ class SelectionOverlayActivity : ComponentActivity() {
                     )
                 )
             } else {
+                phase = nextSelectionPhase(phase, SelectionPhaseAction.REJECT)
                 performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                 clearRect()
             }
@@ -585,6 +665,8 @@ class SelectionOverlayActivity : ComponentActivity() {
             val bounds = computeBounds(strokePoints)
             val minSizePx = MIN_SELECTION_SIZE_DP * resources.displayMetrics.density
             if (bounds != null && isSelectionLargeEnough(bounds, minSizePx)) {
+                phase = nextSelectionPhase(phase, SelectionPhaseAction.CONFIRM)
+                invalidate()
                 onSelectionConfirmed(
                     Rect(
                         bounds.left.toInt(), bounds.top.toInt(),
@@ -592,6 +674,7 @@ class SelectionOverlayActivity : ComponentActivity() {
                     )
                 )
             } else {
+                phase = nextSelectionPhase(phase, SelectionPhaseAction.REJECT)
                 performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                 clearStroke()
             }

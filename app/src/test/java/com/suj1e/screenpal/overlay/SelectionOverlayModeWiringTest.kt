@@ -49,4 +49,45 @@ class SelectionOverlayModeWiringTest {
             overlaySrc.contains("canvas.drawRect(rect, strokePaint)")
         )
     }
+
+    @Test
+    fun maskTiming_drawingUnmasked_confirmedDimmed() {
+        assertTrue(
+            "Mask must be gated by shouldDrawMask(phase), not drawn unconditionally",
+            overlaySrc.contains("if (shouldDrawMask(phase))")
+        )
+        assertTrue(
+            "CONFIRMED hole must be punched with the shared DST_OUT paint",
+            overlaySrc.contains("canvas.drawRect(hole, confirmedHolePaint)")
+        )
+        assertTrue(
+            "White secondary stroke must exist for light backgrounds",
+            overlaySrc.contains("canvas.drawPath(strokePath, secondaryStrokePaint)") &&
+                overlaySrc.contains("canvas.drawRect(rect, secondaryStrokePaint)")
+        )
+        assertTrue(
+            "Secondary stroke must be 2dp",
+            overlaySrc.contains("SECONDARY_STROKE_DP = 2f")
+        )
+    }
+
+    @Test
+    fun maskTiming_stateMachineWiredIntoGesturesAndReselect() {
+        assertTrue(
+            "Gesture start must feed the state machine",
+            overlaySrc.contains("SelectionPhaseAction.GESTURE_START")
+        )
+        assertTrue(
+            "Confirm must feed the state machine",
+            overlaySrc.contains("SelectionPhaseAction.CONFIRM")
+        )
+        assertTrue(
+            "Reject must feed the state machine",
+            overlaySrc.contains("SelectionPhaseAction.REJECT")
+        )
+        assertTrue(
+            "Reselect must feed the state machine",
+            overlaySrc.contains("SelectionPhaseAction.RESELECT")
+        )
+    }
 }
