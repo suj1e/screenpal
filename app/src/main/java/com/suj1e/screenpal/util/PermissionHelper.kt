@@ -1,6 +1,7 @@
 package com.suj1e.screenpal.util
 
 import android.app.Activity
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -31,7 +32,18 @@ object PermissionHelper {
     }
 
     fun requestOverlayPermission(activity: Activity) {
-        activity.startActivityForResult(overlayPermissionIntent(activity), REQUEST_OVERLAY)
+        val intent = overlayPermissionIntent(activity)
+        try {
+            activity.startActivityForResult(intent, REQUEST_OVERLAY)
+        } catch (e: ActivityNotFoundException) {
+            // Final fallback: the app-details page exists on every ROM.
+            activity.startActivity(
+                Intent(
+                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                    Uri.parse("package:${activity.packageName}")
+                ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
+        }
     }
 
     /**
@@ -45,7 +57,13 @@ object PermissionHelper {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             val manufacturer = Build.MANUFACTURER.uppercase()
             if (manufacturer.contains("XIAOMI") || manufacturer.contains("REDMI")) {
-                getOemSpecialIntent(context)?.let { return it }
+                // HyperOS retired the old MIUI permission-editor component; an
+                // explicit Intent to a missing activity = ActivityNotFoundException
+                // crash. Only hand back the OEM deep link if it actually resolves.
+                val oem = getOemSpecialIntent(context)
+                if (oem != null &&
+                    context.packageManager.resolveActivity(oem, 0) != null
+                ) return oem
                 return Intent(
                     Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                     Uri.parse("package:${context.packageName}")
