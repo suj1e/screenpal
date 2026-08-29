@@ -24,6 +24,8 @@ data class MainUiState(
     val translationEnabled: Boolean = true,
     val stepfunApiKey: String = "",
     val stepfunVoice: String = "tianmeinvsheng",
+    // 框选方式（2026-08-29-selection-mode）：LASSO 随手画 / RECT 长方形，默认随手画。
+    val selectionMode: String = "LASSO",
     val overlayPermissionGranted: Boolean = false,
     val notificationPermissionGranted: Boolean = false
 ) {
@@ -58,7 +60,8 @@ class MainViewModel(
                     ocrMode = settings.ocrMode,
                     translationEnabled = settings.translationEnabled,
                     stepfunApiKey = settings.stepfunApiKey,
-                    stepfunVoice = settings.stepfunVoice
+                    stepfunVoice = settings.stepfunVoice,
+                    selectionMode = settings.selectionMode
                 )
                 maybeAutoStartFloatingService()
             }
@@ -113,6 +116,7 @@ class MainViewModel(
             translationEnabled = translationEnabled,
             stepfunApiKey = stepfunApiKey,
             stepfunVoice = stepfunVoice,
+            selectionMode = selectionMode,
             // Runtime-only permission badges are not persisted; keep current view.
             overlayPermissionGranted = state.overlayPermissionGranted,
             notificationPermissionGranted = state.notificationPermissionGranted
@@ -128,7 +132,8 @@ class MainViewModel(
             ocrMode = ocrMode,
             translationEnabled = translationEnabled,
             stepfunApiKey = stepfunApiKey,
-            stepfunVoice = stepfunVoice
+            stepfunVoice = stepfunVoice,
+            selectionMode = selectionMode
         )
 
     fun setTtsEngine(engine: String) = update { it.copy(ttsEngine = engine) }
@@ -144,6 +149,8 @@ class MainViewModel(
     fun setStepfunApiKey(key: String) = update { it.copy(stepfunApiKey = key) }
 
     fun setStepfunVoice(voice: String) = update { it.copy(stepfunVoice = voice) }
+
+    fun setSelectionMode(mode: String) = update { it.copy(selectionMode = mode) }
 
     /**
      * Start the floating window only when required permissions are granted.

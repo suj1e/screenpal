@@ -26,7 +26,8 @@ data class UserSettings(
     val ocrMode: String = "HYBRID",
     val translationEnabled: Boolean = true,
     val stepfunApiKey: String = "",
-    val stepfunVoice: String = "tianmeinvsheng"
+    val stepfunVoice: String = "tianmeinvsheng",
+    val selectionMode: String = "LASSO"
 )
 
 class SettingsRepository(private val context: Context) {
@@ -42,7 +43,8 @@ class SettingsRepository(private val context: Context) {
             ocrMode = prefs[KEY_OCR_MODE] ?: "HYBRID",
             translationEnabled = prefs[KEY_TRANSLATION_ENABLED] ?: true,
             stepfunApiKey = prefs[KEY_STEPFUN_API_KEY] ?: "",
-            stepfunVoice = prefs[KEY_STEPFUN_VOICE] ?: "tianmeinvsheng"
+            stepfunVoice = prefs[KEY_STEPFUN_VOICE] ?: "tianmeinvsheng",
+            selectionMode = prefs[KEY_SELECTION_MODE] ?: "LASSO"
         )
     }
 
@@ -56,7 +58,8 @@ class SettingsRepository(private val context: Context) {
                 ocrMode = prefs[KEY_OCR_MODE] ?: "HYBRID",
                 translationEnabled = prefs[KEY_TRANSLATION_ENABLED] ?: true,
                 stepfunApiKey = prefs[KEY_STEPFUN_API_KEY] ?: "",
-                stepfunVoice = prefs[KEY_STEPFUN_VOICE] ?: "tianmeinvsheng"
+                stepfunVoice = prefs[KEY_STEPFUN_VOICE] ?: "tianmeinvsheng",
+                selectionMode = prefs[KEY_SELECTION_MODE] ?: "LASSO"
             )
             val updated = current.transform()
             prefs[KEY_FLOATING_WINDOW] = updated.floatingWindowEnabled
@@ -67,6 +70,7 @@ class SettingsRepository(private val context: Context) {
             prefs[KEY_TRANSLATION_ENABLED] = updated.translationEnabled
             prefs[KEY_STEPFUN_API_KEY] = updated.stepfunApiKey
             prefs[KEY_STEPFUN_VOICE] = updated.stepfunVoice
+            prefs[KEY_SELECTION_MODE] = updated.selectionMode
         }
     }
 
@@ -79,5 +83,6 @@ class SettingsRepository(private val context: Context) {
         private val KEY_TRANSLATION_ENABLED = booleanPreferencesKey("translationEnabled")
         private val KEY_STEPFUN_API_KEY = stringPreferencesKey("stepfun_api_key")
         private val KEY_STEPFUN_VOICE = stringPreferencesKey("stepfun_voice")
+        private val KEY_SELECTION_MODE = stringPreferencesKey("selectionMode")
     }
 }

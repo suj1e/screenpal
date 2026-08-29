@@ -145,6 +145,11 @@ fun MainScreen(
                 onStepfunVoiceChange = viewModel::setStepfunVoice
             )
 
+            SelectionModeCard(
+                mode = state.selectionMode,
+                onModeChange = viewModel::setSelectionMode
+            )
+
             TtsSettingsCard(
                 engine = state.ttsEngine,
                 rate = state.ttsRate,
@@ -296,6 +301,32 @@ fun StepfunCloudSettingsCard(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
+        }
+    }
+}
+
+/**
+ * 「框选方式」卡（2026-08-29-selection-mode）：随手画套索 / 长方形拖拽两单选，
+ * 默认随手画（升级用户行为不变）。持久化为 DataStore selectionMode，
+ * 截图框选页按此构造 SelectionView。
+ */
+@Composable
+fun SelectionModeCard(
+    mode: String,
+    onModeChange: (String) -> Unit
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("框选方式", style = MaterialTheme.typography.titleMedium)
+            HorizontalDivider()
+
+            Text(
+                "选择屏幕文字的框选手势",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            EngineOptionRow("LASSO", "随手画（圈出任意形状，默认）", mode, onModeChange)
+            EngineOptionRow("RECT", "长方形（拖拽框选矩形）", mode, onModeChange)
         }
     }
 }

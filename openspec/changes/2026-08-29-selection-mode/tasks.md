@@ -1,6 +1,6 @@
 # 2026-08-29-selection-mode 任务清单
 
-- [ ] 1. SelectionMode 枚举 + DataStore selectionMode 键 + 「框选方式」设置卡
+- [x] 1. SelectionMode 枚举 + DataStore selectionMode 键 + 「框选方式」设置卡
   - 验收：默认 LASSO；切换持久化
 - [ ] 2. SelectionView 双模式（RECT 拖拽恢复，共享采样/门槛/回调）+ RECT 归一化单测
   - 验收：两模式确认回调坐标正确
