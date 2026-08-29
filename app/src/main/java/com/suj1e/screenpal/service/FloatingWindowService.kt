@@ -217,7 +217,6 @@ class FloatingWindowService : Service() {
         java.io.FileOutputStream(file).use { out ->
             bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, ScreenCaptureService.JPEG_QUALITY, out)
         }
-        bitmap.recycle()
         androidx.core.content.FileProvider.getUriForFile(
             this,
             "${applicationContext.packageName}.fileprovider",
@@ -226,6 +225,8 @@ class FloatingWindowService : Service() {
     } catch (e: Exception) {
         android.util.Log.e(TAG, "save screenshot bitmap failed", e)
         null
+    } finally {
+        bitmap.recycle()
     }
 
     /** 原 MediaProjection 兜底路径（API<30、无障碍未就绪、实例被杀时）。 */
@@ -272,7 +273,18 @@ class FloatingWindowService : Service() {
             .setPositiveButton("去开启") { _, _ -> onGoToSettings() }
             .setNegativeButton("本次仍用录屏") { _, _ -> onUseProjection() }
             .setOnCancelListener { onCancel() }
-            .show()
+            .create()
+            .also { dialog ->
+                // Service context has no application window token: a default
+                // dialog window would throw BadTokenException on a real device.
+                // The overlay-type window is legal here — SYSTEM_ALERT_WINDOW
+                // is a hard precondition of this very service (the ball itself
+                // is a TYPE_APPLICATION_OVERLAY view).
+                dialog.window?.setType(
+                    android.view.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+                )
+                dialog.show()
+            }
     }
 
     /** 「去开启」：恢复悬浮球后直跳系统无障碍设置页。 */

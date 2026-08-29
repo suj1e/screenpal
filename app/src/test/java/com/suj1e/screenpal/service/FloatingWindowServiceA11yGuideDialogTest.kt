@@ -42,6 +42,13 @@ class FloatingWindowServiceA11yGuideDialogTest {
 
         val dialog = ShadowAlertDialog.getLatestAlertDialog()
         assertNotNull("必须弹出引导对话框", dialog)
+        // Regression pin (review B1): a dialog shown from a Service context
+        // must use the overlay window type, else real devices throw
+        // BadTokenException (Robolectric does not validate window tokens).
+        assertEquals(
+            android.view.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            dialog.window?.attributes?.type
+        )
         assertTrue(
             "标题必须说明「免授权」价值",
             shadowOf(dialog).title.contains("免授权")
