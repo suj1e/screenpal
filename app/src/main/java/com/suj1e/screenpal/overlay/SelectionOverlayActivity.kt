@@ -101,6 +101,9 @@ class SelectionOverlayActivity : ComponentActivity() {
          * start / reject / reselect lands back in DRAWING (no mask); only a
          * confirmed selection holds CONFIRMED. Exposed for JVM unit tests.
          */
+        // `current` is intentionally unused: every action maps to the same
+        // target phase regardless of where we are (kept for call-site clarity
+        // and future per-state transitions).
         internal fun nextSelectionPhase(
             current: SelectionPhase,
             action: SelectionPhaseAction
@@ -276,9 +279,11 @@ class SelectionOverlayActivity : ComponentActivity() {
      */
     private fun loadSelectionMode(): SelectionMode {
         val app = application as ScreenPalApplication
-        val raw = kotlinx.coroutines.runBlocking {
-            app.settingsRepository.userSettings.first().selectionMode
-        }
+        val raw = runCatching {
+            kotlinx.coroutines.runBlocking {
+                app.settingsRepository.userSettings.first().selectionMode
+            }
+        }.getOrDefault("LASSO")
         return SelectionMode.fromStorageValue(raw)
     }
 
