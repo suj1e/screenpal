@@ -21,14 +21,9 @@ data class MainUiState(
     val ttsRate: Float = 1.0f,
     val ttsPitch: Float = 1.0f,
     val ocrMode: String = "HYBRID",
-    val cloudApiKey: String = "",
     val translationEnabled: Boolean = true,
-    val volcanoSpeechAppId: String = "",
-    val volcanoSpeechToken: String = "",
-    val ttsVoice: String = "BV001_streaming",
-    val cloudVendor: String = "DOUBAO",
     val stepfunApiKey: String = "",
-    val stepfunVoice: String = "wenying",
+    val stepfunVoice: String = "tianmeinvsheng",
     val overlayPermissionGranted: Boolean = false,
     val notificationPermissionGranted: Boolean = false
 ) {
@@ -61,12 +56,7 @@ class MainViewModel(
                     ttsRate = settings.ttsRate,
                     ttsPitch = settings.ttsPitch,
                     ocrMode = settings.ocrMode,
-                    cloudApiKey = settings.cloudApiKey,
                     translationEnabled = settings.translationEnabled,
-                    volcanoSpeechAppId = settings.volcanoSpeechAppId,
-                    volcanoSpeechToken = settings.volcanoSpeechToken,
-                    ttsVoice = settings.ttsVoice,
-                    cloudVendor = settings.cloudVendor,
                     stepfunApiKey = settings.stepfunApiKey,
                     stepfunVoice = settings.stepfunVoice
                 )
@@ -120,12 +110,7 @@ class MainViewModel(
             ttsRate = ttsRate,
             ttsPitch = ttsPitch,
             ocrMode = ocrMode,
-            cloudApiKey = cloudApiKey,
             translationEnabled = translationEnabled,
-            volcanoSpeechAppId = volcanoSpeechAppId,
-            volcanoSpeechToken = volcanoSpeechToken,
-            ttsVoice = ttsVoice,
-            cloudVendor = cloudVendor,
             stepfunApiKey = stepfunApiKey,
             stepfunVoice = stepfunVoice,
             // Runtime-only permission badges are not persisted; keep current view.
@@ -141,12 +126,7 @@ class MainViewModel(
             ttsRate = ttsRate,
             ttsPitch = ttsPitch,
             ocrMode = ocrMode,
-            cloudApiKey = cloudApiKey,
             translationEnabled = translationEnabled,
-            volcanoSpeechAppId = volcanoSpeechAppId,
-            volcanoSpeechToken = volcanoSpeechToken,
-            ttsVoice = ttsVoice,
-            cloudVendor = cloudVendor,
             stepfunApiKey = stepfunApiKey,
             stepfunVoice = stepfunVoice
         )
@@ -159,17 +139,7 @@ class MainViewModel(
 
     fun setOcrMode(mode: String) = update { it.copy(ocrMode = mode) }
 
-    fun setCloudApiKey(key: String) = update { it.copy(cloudApiKey = key) }
-
     fun setTranslationEnabled(enabled: Boolean) = update { it.copy(translationEnabled = enabled) }
-
-    fun setVolcanoAppId(appId: String) = update { it.copy(volcanoSpeechAppId = appId) }
-
-    fun setVolcanoToken(token: String) = update { it.copy(volcanoSpeechToken = token) }
-
-    fun setTtsVoice(voice: String) = update { it.copy(ttsVoice = voice) }
-
-    fun setCloudVendor(vendor: String) = update { it.copy(cloudVendor = vendor) }
 
     fun setStepfunApiKey(key: String) = update { it.copy(stepfunApiKey = key) }
 

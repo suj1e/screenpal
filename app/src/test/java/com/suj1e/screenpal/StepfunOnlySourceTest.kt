@@ -14,14 +14,16 @@ class StepfunOnlySourceTest {
 
     private val bannedTokens = listOf(
         "Doub" + "ao",
-        "Vendor" + "Router"
+        "Vendor" + "Router",
+        "volc" + "ano",
+        "cloud" + "ApiKey"
     )
 
     @Test
     fun mainSources_containNoDeletedVendorLayerResidue() {
         val offenders = bannedFiles("src/main/java")
         assertTrue(
-            "main 源码仍有已删除服务商层的残留：$offenders",
+            "main 源码仍有已删除服务商层/旧设置键的残留：$offenders",
             offenders.isEmpty()
         )
     }

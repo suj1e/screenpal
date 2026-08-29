@@ -138,26 +138,15 @@ fun MainScreen(
                 Text(if (state.floatingWindowEnabled) "停止悬浮窗" else "启动悬浮窗")
             }
 
-            VendorSettingsCard(
-                cloudVendor = state.cloudVendor,
-                arkApiKey = state.cloudApiKey,
-                volcanoAppId = state.volcanoSpeechAppId,
-                volcanoToken = state.volcanoSpeechToken,
-                volcanoVoice = state.ttsVoice,
+            StepfunCloudSettingsCard(
                 stepfunApiKey = state.stepfunApiKey,
                 stepfunVoice = state.stepfunVoice,
-                onVendorChange = viewModel::setCloudVendor,
-                onArkApiKeyChange = viewModel::setCloudApiKey,
-                onVolcanoAppIdChange = viewModel::setVolcanoAppId,
-                onVolcanoTokenChange = viewModel::setVolcanoToken,
-                onVolcanoVoiceChange = viewModel::setTtsVoice,
                 onStepfunApiKeyChange = viewModel::setStepfunApiKey,
                 onStepfunVoiceChange = viewModel::setStepfunVoice
             )
 
             TtsSettingsCard(
                 engine = state.ttsEngine,
-                cloudVendor = state.cloudVendor,
                 rate = state.ttsRate,
                 pitch = state.ttsPitch,
                 onEngineChange = viewModel::setTtsEngine,
@@ -167,13 +156,12 @@ fun MainScreen(
 
             OcrSettingsCard(
                 mode = state.ocrMode,
-                cloudVendor = state.cloudVendor,
                 onModeChange = viewModel::setOcrMode
             )
 
             ToggleCard(
                 title = "中文播报",
-                description = if (state.translationEnabled) "外文经所选服务商转译为简体中文播报" else "已关闭：识别到什么语言就读什么语言",
+                description = if (state.translationEnabled) "外文经 StepFun 转译为简体中文播报" else "已关闭：识别到什么语言就读什么语言",
                 checked = state.translationEnabled,
                 onCheckedChange = viewModel::setTranslationEnabled
             )
@@ -241,21 +229,18 @@ fun ToggleCard(
 @Composable
 fun TtsSettingsCard(
     engine: String,
-    cloudVendor: String,
     rate: Float,
     pitch: Float,
     onEngineChange: (String) -> Unit,
     onRateChange: (Float) -> Unit,
     onPitchChange: (Float) -> Unit
 ) {
-    val onlineLabel = if (cloudVendor.equals("STEPFUN", ignoreCase = true))
-        "在线语音（StepFun，凭据在「在线服务商」）" else "在线语音（豆包，凭据在「在线服务商」）"
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("语音播报设置", style = MaterialTheme.typography.titleMedium)
             HorizontalDivider()
 
-            EngineOptionRow("CLOUD", onlineLabel, engine, onEngineChange)
+            EngineOptionRow("CLOUD", "在线语音（StepFun，凭据在「StepFun 云服务」）", engine, onEngineChange)
             EngineOptionRow("PIPER", "Piper 离线（无网/无凭据兜底）", engine, onEngineChange)
             EngineOptionRow("SYSTEM", "系统 TTS（兜底）", engine, onEngineChange)
 
@@ -276,98 +261,41 @@ private fun EngineOptionRow(value: String, label: String, selected: String, onSe
 }
 
 /**
- * 在线服务商选择：豆包 / StepFun 并列可选，选定谁用谁——在线 TTS / 云 OCR
- * 增强 / AI 转译三项在线能力全部由所选服务商提供。凭据区随所选切换，
- * 各家凭据只出现一次、互不混排。
+ * 「StepFun 云服务」卡：在线能力的唯一凭据入口。一把 API Key 包办三项在线能力
+ * （在线 TTS / 云 OCR 增强 / AI 转译）；API Key 与音色两项常显。
  */
 @Composable
-fun VendorSettingsCard(
-    cloudVendor: String,
-    arkApiKey: String,
-    volcanoAppId: String,
-    volcanoToken: String,
-    volcanoVoice: String,
+fun StepfunCloudSettingsCard(
     stepfunApiKey: String,
     stepfunVoice: String,
-    onVendorChange: (String) -> Unit,
-    onArkApiKeyChange: (String) -> Unit,
-    onVolcanoAppIdChange: (String) -> Unit,
-    onVolcanoTokenChange: (String) -> Unit,
-    onVolcanoVoiceChange: (String) -> Unit,
     onStepfunApiKeyChange: (String) -> Unit,
     onStepfunVoiceChange: (String) -> Unit
 ) {
-    val isStepfun = cloudVendor.equals("STEPFUN", ignoreCase = true)
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("在线服务商", style = MaterialTheme.typography.titleMedium)
+            Text("StepFun 云服务", style = MaterialTheme.typography.titleMedium)
             HorizontalDivider()
 
             Text(
-                "选定的服务商包办：在线语音播报 · 云 OCR 增强 · AI 转译",
+                "一把 API Key 包办：在线语音播报 · 云 OCR 增强 · AI 转译",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            EngineOptionRow(
-                "DOUBAO",
-                "豆包（火山引擎）",
-                cloudVendor,
-                onVendorChange
+            OutlinedTextField(
+                value = stepfunApiKey,
+                onValueChange = onStepfunApiKeyChange,
+                label = { Text("StepFun API Key（TTS + 视觉 OCR + 转译共用）") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
             )
-            if (!isStepfun) {
-                OutlinedTextField(
-                    value = arkApiKey,
-                    onValueChange = onArkApiKeyChange,
-                    label = { Text("火山方舟 API Key（视觉 OCR + AI 转译）") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-                OutlinedTextField(
-                    value = volcanoAppId,
-                    onValueChange = onVolcanoAppIdChange,
-                    label = { Text("火山语音 AppID（在线 TTS）") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-                OutlinedTextField(
-                    value = volcanoToken,
-                    onValueChange = onVolcanoTokenChange,
-                    label = { Text("火山语音 Access Token") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-                OutlinedTextField(
-                    value = volcanoVoice,
-                    onValueChange = onVolcanoVoiceChange,
-                    label = { Text("音色（voice_type，默认 BV001_streaming）") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-            }
-
-            EngineOptionRow(
-                "STEPFUN",
-                "StepFun（阶跃星辰）",
-                cloudVendor,
-                onVendorChange
+            OutlinedTextField(
+                value = stepfunVoice,
+                onValueChange = onStepfunVoiceChange,
+                label = { Text("音色（voice，默认 tianmeinvsheng）") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
             )
-            if (isStepfun) {
-                OutlinedTextField(
-                    value = stepfunApiKey,
-                    onValueChange = onStepfunApiKeyChange,
-                    label = { Text("StepFun API Key（TTS + 视觉 OCR + 转译共用）") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-                OutlinedTextField(
-                    value = stepfunVoice,
-                    onValueChange = onStepfunVoiceChange,
-                    label = { Text("音色（voice，默认 tianmeinvsheng）") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-            }
         }
     }
 }
@@ -375,18 +303,16 @@ fun VendorSettingsCard(
 @Composable
 fun OcrSettingsCard(
     mode: String,
-    cloudVendor: String,
     onModeChange: (String) -> Unit
 ) {
-    val vendorName = if (cloudVendor.equals("STEPFUN", ignoreCase = true)) "StepFun" else "豆包"
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("OCR 设置", style = MaterialTheme.typography.titleMedium)
             HorizontalDivider()
 
             EngineOptionRow("LOCAL", "仅端侧 PP-OCR（离线）", mode, onModeChange)
-            EngineOptionRow("CLOUD", "仅云端 $vendorName 视觉（凭据在「在线服务商」）", mode, onModeChange)
-            EngineOptionRow("HYBRID", "混合模式：端侧优先，低置信度走云端 $vendorName", mode, onModeChange)
+            EngineOptionRow("CLOUD", "仅云端 StepFun 视觉（凭据在「StepFun 云服务」）", mode, onModeChange)
+            EngineOptionRow("HYBRID", "混合模式：端侧优先，低置信度走云端 StepFun", mode, onModeChange)
         }
     }
 }

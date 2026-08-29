@@ -12,18 +12,19 @@ import kotlinx.coroutines.flow.map
 
 val Context.dataStore: androidx.datastore.core.DataStore<Preferences> by preferencesDataStore(name = "settings")
 
+/**
+ * StepFun-only 键面（2026-08-29-stepfun-only）：在线能力唯一凭据 = stepfunApiKey /
+ * stepfunVoice（TTS / 云 OCR / 转译共用一把 Key）。旧的双服务商键
+ * （服务商选择键、方舟键、火山语音三键）已删除；DataStore 里遗留的旧键条目
+ * 不迁移，读侧不再映射即视为删除（DataStore 容忍未知键）。
+ */
 data class UserSettings(
     val floatingWindowEnabled: Boolean = false,
     val ttsEngine: String = "PIPER",
     val ttsRate: Float = 1.0f,
     val ttsPitch: Float = 1.0f,
     val ocrMode: String = "HYBRID",
-    val cloudApiKey: String = "",
     val translationEnabled: Boolean = true,
-    val volcanoSpeechAppId: String = "",
-    val volcanoSpeechToken: String = "",
-    val ttsVoice: String = "BV001_streaming",
-    val cloudVendor: String = "DOUBAO",
     val stepfunApiKey: String = "",
     val stepfunVoice: String = "tianmeinvsheng"
 )
@@ -39,12 +40,7 @@ class SettingsRepository(private val context: Context) {
             ttsRate = prefs[KEY_TTS_RATE] ?: 1.0f,
             ttsPitch = prefs[KEY_TTS_PITCH] ?: 1.0f,
             ocrMode = prefs[KEY_OCR_MODE] ?: "HYBRID",
-            cloudApiKey = prefs[KEY_CLOUD_API_KEY] ?: "",
             translationEnabled = prefs[KEY_TRANSLATION_ENABLED] ?: true,
-            volcanoSpeechAppId = prefs[KEY_VOLCANO_APP_ID] ?: "",
-            volcanoSpeechToken = prefs[KEY_VOLCANO_TOKEN] ?: "",
-            ttsVoice = prefs[KEY_TTS_VOICE] ?: "BV001_streaming",
-            cloudVendor = prefs[KEY_CLOUD_VENDOR] ?: "DOUBAO",
             stepfunApiKey = prefs[KEY_STEPFUN_API_KEY] ?: "",
             stepfunVoice = prefs[KEY_STEPFUN_VOICE] ?: "tianmeinvsheng"
         )
@@ -58,12 +54,7 @@ class SettingsRepository(private val context: Context) {
                 ttsRate = prefs[KEY_TTS_RATE] ?: 1.0f,
                 ttsPitch = prefs[KEY_TTS_PITCH] ?: 1.0f,
                 ocrMode = prefs[KEY_OCR_MODE] ?: "HYBRID",
-                cloudApiKey = prefs[KEY_CLOUD_API_KEY] ?: "",
                 translationEnabled = prefs[KEY_TRANSLATION_ENABLED] ?: true,
-                volcanoSpeechAppId = prefs[KEY_VOLCANO_APP_ID] ?: "",
-                volcanoSpeechToken = prefs[KEY_VOLCANO_TOKEN] ?: "",
-                ttsVoice = prefs[KEY_TTS_VOICE] ?: "BV001_streaming",
-                cloudVendor = prefs[KEY_CLOUD_VENDOR] ?: "DOUBAO",
                 stepfunApiKey = prefs[KEY_STEPFUN_API_KEY] ?: "",
                 stepfunVoice = prefs[KEY_STEPFUN_VOICE] ?: "tianmeinvsheng"
             )
@@ -73,12 +64,7 @@ class SettingsRepository(private val context: Context) {
             prefs[KEY_TTS_RATE] = updated.ttsRate
             prefs[KEY_TTS_PITCH] = updated.ttsPitch
             prefs[KEY_OCR_MODE] = updated.ocrMode
-            prefs[KEY_CLOUD_API_KEY] = updated.cloudApiKey
             prefs[KEY_TRANSLATION_ENABLED] = updated.translationEnabled
-            prefs[KEY_VOLCANO_APP_ID] = updated.volcanoSpeechAppId
-            prefs[KEY_VOLCANO_TOKEN] = updated.volcanoSpeechToken
-            prefs[KEY_TTS_VOICE] = updated.ttsVoice
-            prefs[KEY_CLOUD_VENDOR] = updated.cloudVendor
             prefs[KEY_STEPFUN_API_KEY] = updated.stepfunApiKey
             prefs[KEY_STEPFUN_VOICE] = updated.stepfunVoice
         }
@@ -90,12 +76,7 @@ class SettingsRepository(private val context: Context) {
         private val KEY_TTS_RATE = floatPreferencesKey("tts_rate")
         private val KEY_TTS_PITCH = floatPreferencesKey("tts_pitch")
         private val KEY_OCR_MODE = stringPreferencesKey("ocr_mode")
-        private val KEY_CLOUD_API_KEY = stringPreferencesKey("cloud_api_key")
         private val KEY_TRANSLATION_ENABLED = booleanPreferencesKey("translationEnabled")
-        private val KEY_VOLCANO_APP_ID = stringPreferencesKey("volcano_speech_app_id")
-        private val KEY_VOLCANO_TOKEN = stringPreferencesKey("volcano_speech_token")
-        private val KEY_TTS_VOICE = stringPreferencesKey("tts_voice")
-        private val KEY_CLOUD_VENDOR = stringPreferencesKey("cloud_vendor")
         private val KEY_STEPFUN_API_KEY = stringPreferencesKey("stepfun_api_key")
         private val KEY_STEPFUN_VOICE = stringPreferencesKey("stepfun_voice")
     }

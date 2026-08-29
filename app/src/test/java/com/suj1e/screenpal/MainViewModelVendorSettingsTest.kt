@@ -18,9 +18,10 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
 /**
- * MainViewModel must expose and persist the vendor-selector settings
- * (2026-08-27-stepfun-vendor): cloudVendor / stepfunApiKey / stepfunVoice,
- * keeping uiState in sync with DataStore.
+ * MainViewModel must expose and persist the StepFun credentials
+ * (2026-08-29-stepfun-only): stepfunApiKey / stepfunVoice, keeping uiState in
+ * sync with DataStore. The vendor-selector (cloudVendor) is gone — StepFun is
+ * the only online provider.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -46,63 +47,64 @@ class MainViewModelVendorSettingsTest {
         )[MainViewModel::class.java]
 
     @Test
-    fun vendorSetters_persistToDataStore_andSyncUiState() {
+    fun stepfunSetters_persistToDataStore_andSyncUiState() {
         val repository = SettingsRepository(RuntimeEnvironment.getApplication())
         val viewModel = newViewModel(repository)
 
-        viewModel.setCloudVendor("STEPFUN")
+        // Sequential writes with polling in between: consecutive update() calls
+        // merge onto the persisted snapshot, so overlapping writes can lose a
+        // field (last writer wins with its own snapshot).
         viewModel.setStepfunApiKey("sk-9")
+        runBlocking { awaitPersisted(repository, expectKey = "sk-9") }
         viewModel.setStepfunVoice("xiaochen")
 
-        val persisted = runBlocking { awaitPersisted(repository) }
-        assertEquals("STEPFUN", persisted.cloudVendor)
+        val persisted = runBlocking { awaitPersisted(repository, expectKey = "sk-9", expectVoice = "xiaochen") }
         assertEquals("sk-9", persisted.stepfunApiKey)
         assertEquals("xiaochen", persisted.stepfunVoice)
 
         val state = viewModel.uiState.value
-        assertEquals("STEPFUN", state.cloudVendor)
         assertEquals("sk-9", state.stepfunApiKey)
         assertEquals("xiaochen", state.stepfunVoice)
     }
 
     @Test
-    fun uiState_syncsFromPersistedVendorSettings() = runBlocking<Unit> {
+    fun uiState_syncsFromPersistedStepfunSettings() = runBlocking<Unit> {
         val repository = SettingsRepository(RuntimeEnvironment.getApplication())
         repository.update {
-            copy(cloudVendor = "STEPFUN", stepfunApiKey = "sk-seed", stepfunVoice = "xiaochen")
+            copy(stepfunApiKey = "sk-seed", stepfunVoice = "xiaochen")
         }
 
         val viewModel = newViewModel(repository)
 
         val deadline = System.currentTimeMillis() + 5_000
-        while (viewModel.uiState.value.cloudVendor != "STEPFUN" &&
+        while (viewModel.uiState.value.stepfunApiKey != "sk-seed" &&
             System.currentTimeMillis() < deadline
         ) {
             Thread.sleep(20)
         }
         val state = viewModel.uiState.value
-        assertEquals("STEPFUN", state.cloudVendor)
         assertEquals("sk-seed", state.stepfunApiKey)
         assertEquals("xiaochen", state.stepfunVoice)
     }
 
     @Test
-    fun unrelatedUpdate_preservesVendorSettings() = runBlocking<Unit> {
+    fun unrelatedUpdate_preservesStepfunSettings() = runBlocking<Unit> {
         val repository = SettingsRepository(RuntimeEnvironment.getApplication())
         val viewModel = newViewModel(repository)
 
-        viewModel.setCloudVendor("STEPFUN")
+        // Sequential writes with polling in between (see stepfunSetters test).
         viewModel.setStepfunApiKey("sk-keep")
+        awaitPersisted(repository, expectKey = "sk-keep")
         viewModel.setStepfunVoice("wenying")
+        awaitPersisted(repository, expectKey = "sk-keep", expectVoice = "wenying")
         viewModel.setTtsRate(1.5f)
 
         val deadline = System.currentTimeMillis() + 5_000
-        var settings = runBlocking { repository.userSettings.first() }
+        var settings = repository.userSettings.first()
         while (settings.ttsRate != 1.5f && System.currentTimeMillis() < deadline) {
             Thread.sleep(20)
-            settings = runBlocking { repository.userSettings.first() }
+            settings = repository.userSettings.first()
         }
-        assertEquals("STEPFUN", settings.cloudVendor)
         assertEquals("sk-keep", settings.stepfunApiKey)
         assertEquals("wenying", settings.stepfunVoice)
         assertEquals(1.5f, settings.ttsRate)
@@ -110,13 +112,14 @@ class MainViewModelVendorSettingsTest {
 
     private suspend fun awaitPersisted(
         repository: SettingsRepository,
+        expectKey: String,
+        expectVoice: String? = null,
         timeoutMs: Long = 5_000
     ): com.suj1e.screenpal.util.UserSettings {
         val deadline = System.currentTimeMillis() + timeoutMs
         var settings = repository.userSettings.first()
-        while ((settings.cloudVendor != "STEPFUN" ||
-                settings.stepfunApiKey != "sk-9" ||
-                settings.stepfunVoice != "xiaochen") &&
+        while ((settings.stepfunApiKey != expectKey ||
+                (expectVoice != null && settings.stepfunVoice != expectVoice)) &&
             System.currentTimeMillis() < deadline
         ) {
             Thread.sleep(20)
