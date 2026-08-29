@@ -1,9 +1,22 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose") version "2.1.0"
     id("org.jetbrains.kotlin.plugin.serialization") version "2.1.0"
 }
+
+val keystoreProps = Properties().also { props ->
+    val f = rootProject.file("keystore.properties")
+    if (f.exists()) FileInputStream(f).use { props.load(it) }
+}
+
+val nianianStoreFile = rootProject.file(keystoreProps.getProperty("storeFile", "../nianian-release.keystore"))
+val nianianStorePassword = keystoreProps.getProperty("storePassword", "")
+val nianianKeyAlias = keystoreProps.getProperty("keyAlias", "nianian")
+val nianianKeyPassword = keystoreProps.getProperty("keyPassword", "")
 
 android {
     namespace = "com.suj1e.screenpal"
@@ -22,18 +35,28 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = nianianStoreFile
+            storePassword = nianianStorePassword
+            keyAlias = nianianKeyAlias
+            keyPassword = nianianKeyPassword
+        }
+    }
+
     buildTypes {
         debug {
             // Universal ABI so the x86_64 emulator can install debug builds.
             ndk { abiFilters.clear() }
         }
         release {
-            ndk { abiFilters += listOf("armeabi-v7a", "arm64-v8a") }
+            ndk { abiFilters += listOf("arm64-v8a") }
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("release")
         }
     }
     compileOptions {

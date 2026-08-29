@@ -17,3 +17,6 @@ local.properties
 
 # Kotlin compiler local state
 .kotlin/
+
+*.keystore
+keystore.properties
