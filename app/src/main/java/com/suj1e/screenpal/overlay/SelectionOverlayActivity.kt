@@ -189,6 +189,7 @@ class SelectionOverlayActivity : ComponentActivity() {
          */
         internal fun metaAnnotation(outcome: BroadcastOutcome): String? = when (outcome) {
             BroadcastOutcome.Translated -> " · AI 转译"
+            BroadcastOutcome.EXPLAINED -> " · AI 讲解"
             BroadcastOutcome.FallbackOriginal -> " · 翻译不可用"
             BroadcastOutcome.Direct -> null
         }

@@ -6,14 +6,17 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withTimeout
 
-/** 播报结果：翻译后播报 / 中文直读 / 降级播报原文。 */
-enum class BroadcastOutcome { Translated, Direct, FallbackOriginal }
+/** 播报结果：翻译后播报 / 中文直读 / 降级播报原文 / AI 讲解播报。 */
+enum class BroadcastOutcome { Translated, Direct, FallbackOriginal, EXPLAINED }
 
 /**
- * OCR 文本 → 中文播报管道：
- * 开关关或启发式判定中文 → 直读原文（零网络）；
- * 否则 5s 超时内调 [TranslateService] 转译，成功播译文，
- * 任何失败（无 Key / 网络 / 超时 / 空译文）降级播原文。
+ * OCR 文本 → 中文播报管道（2026-08-29-broadcast-mode 起按 [BroadcastMode] 分发）：
+ * - TRANSLATE（默认）：开关关或启发式判定中文 → 直读原文（零网络）；否则 15s
+ *   超时内调 [TranslateService.translate] 转译，成功播译文，任何失败（无 Key /
+ *   网络 / 超时 / 空译文）降级播原文。
+ * - EXPLAIN：跳过中文启发式（任何语言都讲解）且不受「中文播报」开关限制；15s
+ *   超时内调 [TranslateService.explain]，成功播讲解，任何失败/超时/讲解为空降级
+ *   播原文；空文本直返 Direct（零网络零播报）。
  * TTS 自身异常不吞、向上传播，保持既有播报失败语义。
  */
 class ChineseBroadcastPipeline(
@@ -28,8 +31,39 @@ class ChineseBroadcastPipeline(
     suspend fun broadcast(
         text: String,
         tts: TtsManager,
-        translationEnabled: Boolean = true
+        translationEnabled: Boolean = true,
+        mode: BroadcastMode = BroadcastMode.TRANSLATE
     ): BroadcastOutcome {
+        if (mode == BroadcastMode.EXPLAIN) {
+            if (text.isBlank()) {
+                // 空文本直返：无内容可讲，零网络零播报。
+                lastSpokenText = text
+                return BroadcastOutcome.Direct
+            }
+            val explained = try {
+                withTimeout(timeoutMs) { translateService.explain(text) }
+            } catch (e: TimeoutCancellationException) {
+                Log.w(TAG, "讲解超时（${timeoutMs}ms），降级播报原文", e)
+                null
+            } catch (e: CancellationException) {
+                // 外层协程取消必须继续传播；仅超时降级。
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "讲解失败，降级播报原文", e)
+                null
+            }
+
+            if (explained.isNullOrBlank()) {
+                lastSpokenText = text
+                tts.speak(text)
+                return BroadcastOutcome.FallbackOriginal
+            }
+
+            lastSpokenText = explained
+            tts.speak(explained)
+            return BroadcastOutcome.EXPLAINED
+        }
+
         if (!translationEnabled || ChineseHeuristic.isMostlyChinese(text)) {
             lastSpokenText = text
             tts.speak(text)
