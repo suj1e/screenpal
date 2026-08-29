@@ -3,6 +3,7 @@ package com.suj1e.screenpal
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import com.suj1e.screenpal.service.FloatingWindowService
+import com.suj1e.screenpal.util.AccessibilityHelper
 import com.suj1e.screenpal.util.PermissionHelper
 import com.suj1e.screenpal.util.SettingsRepository
 import kotlinx.coroutines.CoroutineDispatcher
@@ -27,7 +28,10 @@ data class MainUiState(
     // 框选方式（2026-08-29-selection-mode）：LASSO 随手画 / RECT 长方形，默认随手画。
     val selectionMode: String = "LASSO",
     val overlayPermissionGranted: Boolean = false,
-    val notificationPermissionGranted: Boolean = false
+    val notificationPermissionGranted: Boolean = false,
+    // 无障碍截屏主路径开关（2026-08-29-permission-tri-card）：实时读系统回显，
+    // 不持久化；true 时点悬浮球零弹窗识读。
+    val accessibilityEnabled: Boolean = false
 ) {
     fun missingRequiredPermissions(): List<String> {
         val missing = mutableListOf<String>()
@@ -73,7 +77,9 @@ class MainViewModel(
         val status = PermissionHelper.getAllPermissionStatus(context)
         _uiState.value = _uiState.value.copy(
             overlayPermissionGranted = status["overlay"] ?: false,
-            notificationPermissionGranted = status["notification"] ?: false
+            notificationPermissionGranted = status["notification"] ?: false,
+            // 第三行「无障碍权限」：以 AccessibilityManager 实时回显为准，服务被杀后自然回到未开启态。
+            accessibilityEnabled = AccessibilityHelper.isEnabled(context)
         )
         maybeAutoStartFloatingService()
     }
@@ -119,7 +125,8 @@ class MainViewModel(
             selectionMode = selectionMode,
             // Runtime-only permission badges are not persisted; keep current view.
             overlayPermissionGranted = state.overlayPermissionGranted,
-            notificationPermissionGranted = state.notificationPermissionGranted
+            notificationPermissionGranted = state.notificationPermissionGranted,
+            accessibilityEnabled = state.accessibilityEnabled
         )
     }
 
