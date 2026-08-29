@@ -25,7 +25,7 @@ data class UserSettings(
     val ttsVoice: String = "BV001_streaming",
     val cloudVendor: String = "DOUBAO",
     val stepfunApiKey: String = "",
-    val stepfunVoice: String = "wenying"
+    val stepfunVoice: String = "tianmeinvsheng"
 )
 
 class SettingsRepository(private val context: Context) {
@@ -46,7 +46,7 @@ class SettingsRepository(private val context: Context) {
             ttsVoice = prefs[KEY_TTS_VOICE] ?: "BV001_streaming",
             cloudVendor = prefs[KEY_CLOUD_VENDOR] ?: "DOUBAO",
             stepfunApiKey = prefs[KEY_STEPFUN_API_KEY] ?: "",
-            stepfunVoice = prefs[KEY_STEPFUN_VOICE] ?: "wenying"
+            stepfunVoice = prefs[KEY_STEPFUN_VOICE] ?: "tianmeinvsheng"
         )
     }
 
@@ -65,7 +65,7 @@ class SettingsRepository(private val context: Context) {
                 ttsVoice = prefs[KEY_TTS_VOICE] ?: "BV001_streaming",
                 cloudVendor = prefs[KEY_CLOUD_VENDOR] ?: "DOUBAO",
                 stepfunApiKey = prefs[KEY_STEPFUN_API_KEY] ?: "",
-                stepfunVoice = prefs[KEY_STEPFUN_VOICE] ?: "wenying"
+                stepfunVoice = prefs[KEY_STEPFUN_VOICE] ?: "tianmeinvsheng"
             )
             val updated = current.transform()
             prefs[KEY_FLOATING_WINDOW] = updated.floatingWindowEnabled

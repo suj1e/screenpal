@@ -18,7 +18,7 @@ enum class BroadcastOutcome { Translated, Direct, FallbackOriginal }
  */
 class ChineseBroadcastPipeline(
     private val translateService: TranslateService,
-    private val timeoutMs: Long = DEFAULT_TIMEOUT_MS
+    private val timeoutMs: Long = TRANSLATE_TIMEOUT_MS
 ) {
 
     /** 最近一次 broadcast 实际播报的文本（降级时为原文），供结果卡主显。 */
@@ -64,6 +64,7 @@ class ChineseBroadcastPipeline(
         const val TAG = "ChineseBroadcast"
 
         /** 翻译超时上限：大模型短文本 RTT 约 1–2s，5s 兜底。 */
-        const val DEFAULT_TIMEOUT_MS = 5000L
+        /** step-3.7-flash is a reasoning model: thinking time counts against this budget. */
+        const val TRANSLATE_TIMEOUT_MS = 15_000L
     }
 }

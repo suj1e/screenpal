@@ -109,15 +109,15 @@ class StepfunOcrProvider(
     }
 
     companion object {
-        const val ENDPOINT = "https://api.stepfun.com/v1/chat/completions"
+        const val ENDPOINT = "https://api.stepfun.com/step_plan/v1/chat/completions"
 
         /** StepFun 视觉模型常量（主智能体待校准项：模型名可整期替换）。 */
-        const val MODEL = "step-flash-3.7"
+        const val MODEL = "step-3.7-flash"
 
         const val TEMPERATURE = 0.0
 
         /** 输出 token 上限：OCR 文本输出有限，防止失控长输出放大按 token 计费成本。 */
-        const val MAX_TOKENS = 2048
+        const val MAX_TOKENS = 4096
 
         /** 与上层 JPEG 压缩质量约定对齐（85）。 */
         const val JPEG_QUALITY = 85

@@ -170,6 +170,6 @@ class VendorRouterTest {
         val defaults = UserSettings()
         assertEquals("DOUBAO", defaults.cloudVendor)
         assertEquals("", defaults.stepfunApiKey)
-        assertEquals("wenying", defaults.stepfunVoice)
+        assertEquals("tianmeinvsheng", defaults.stepfunVoice)
     }
 }

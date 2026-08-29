@@ -364,7 +364,7 @@ fun VendorSettingsCard(
                 OutlinedTextField(
                     value = stepfunVoice,
                     onValueChange = onStepfunVoiceChange,
-                    label = { Text("音色（voice，默认 wenying）") },
+                    label = { Text("音色（voice，默认 tianmeinvsheng）") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )

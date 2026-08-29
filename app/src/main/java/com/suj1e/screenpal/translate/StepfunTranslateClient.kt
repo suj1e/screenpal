@@ -79,19 +79,25 @@ class StepfunTranslateClient(
     internal data class ChatRequest(
         val model: String,
         val messages: List<ChatMessage>,
-        val temperature: Double
+        val temperature: Double,
+        // step-3.7-flash is a reasoning model: its thinking consumes the
+        // completion budget before `content`, so the cap must be generous or
+        // the answer comes back empty.
+        val max_tokens: Int = MAX_TOKENS
     )
 
     @Serializable
     internal data class ChatMessage(val role: String, val content: String)
 
     companion object {
-        const val ENDPOINT = "https://api.stepfun.com/v1/chat/completions"
+        const val ENDPOINT = "https://api.stepfun.com/step_plan/v1/chat/completions"
 
         /** StepFun 文本模型常量（主智能体待校准项：模型名可整期替换）。 */
-        const val MODEL = "step-flash-3.7"
+        const val MODEL = "step-3.7-flash"
 
         const val TEMPERATURE = 0.0
+
+        const val MAX_TOKENS = 4096
 
         /** q 的上限：按 UTF-8 字节截断，防止超长文本放大 token 消耗。 */
         const val MAX_Q_UTF8_BYTES = 6000

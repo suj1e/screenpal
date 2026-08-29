@@ -29,7 +29,7 @@ import java.io.IOException
 
 /**
  * StepfunOcrProvider（StepFun 视觉）契约测试（Robolectric + Ktor MockEngine）：
- * 请求组装（system prompt 同豆包逐字 / user image data URL / model step-flash-3.7）、
+ * 请求组装（system prompt 同豆包逐字 / user image data URL / model step-3.7-flash）、
  * 多行解析（TextBlock 切分/置信度 0.99/空矩形）、错误映射（401/429/5xx/空 content/畸形响应/网络异常）。
  */
 @RunWith(RobolectricTestRunner::class)
@@ -90,7 +90,7 @@ class StepfunOcrProviderTest {
 
         val obj = Json.parseToJsonElement(engine.lastBody).jsonObject
         assertEquals(StepfunOcrProvider.MODEL, obj["model"]!!.jsonPrimitive.content)
-        assertEquals("step-flash-3.7", obj["model"]!!.jsonPrimitive.content)
+        assertEquals("step-3.7-flash", obj["model"]!!.jsonPrimitive.content)
         assertEquals(0.0, obj["temperature"]!!.jsonPrimitive.content.toDouble(), 1e-9)
 
         val messages = obj["messages"]!!.jsonArray

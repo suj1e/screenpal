@@ -194,6 +194,7 @@ class SelectionOverlayActivity : ComponentActivity() {
      */
     internal fun onSelectionConfirmed(screenRect: Rect) {
         viewModel.selectionRect = screenRect
+        Log.i(TAG, "lasso viewRect=$screenRect view=${selectionView.width}x${selectionView.height} bitmap=${screenshotBitmap.width}x${screenshotBitmap.height}")
         val cropRect = viewModel.calculateCropRect(
             screenRect,
             screenshotBitmap.width,
@@ -201,6 +202,7 @@ class SelectionOverlayActivity : ComponentActivity() {
             selectionView.width.coerceAtLeast(1),
             selectionView.height.coerceAtLeast(1)
         )
+        Log.i(TAG, "cropRect=$cropRect")
         val cropped = cropScreenshot(cropRect) ?: run {
             Toast.makeText(this, "裁剪失败，请重新框选", Toast.LENGTH_SHORT).show()
             return

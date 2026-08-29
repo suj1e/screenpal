@@ -140,16 +140,16 @@ class StepfunTtsEngine(
 
     companion object {
         const val TAG = "StepfunTtsEngine"
-        const val ENDPOINT = "https://api.stepfun.com/v1/audio/speech"
+        const val ENDPOINT = "https://api.stepfun.com/step_plan/v1/audio/speech"
 
         const val AUTH_HEADER_NAME = "Authorization"
         const val AUTH_HEADER_SCHEME = "Bearer "
 
         /** StepFun TTS 模型常量（主智能体待校准项：模型名可整期替换）。 */
-        const val MODEL = "step-tts-2.5"
+        const val MODEL = "stepaudio-2.5-tts"
 
         /** 默认音色：闻莺女声（可选小宸男声等，设置页可改）。 */
-        const val DEFAULT_VOICE = "wenying"
+        const val DEFAULT_VOICE = "tianmeinvsheng"
 
         const val RESPONSE_FORMAT = "mp3"
         const val REQUEST_TIMEOUT_MS = 10_000L
