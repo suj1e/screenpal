@@ -1,6 +1,6 @@
 # 2026-08-29-broadcast-mode 任务清单
 
-- [ ] 1. BroadcastMode 枚举（脏值回退 TRANSLATE）+ DataStore broadcastMode 键 + 「播报模式」设置卡 + 默认值/持久化单测
+- [x] 1. BroadcastMode 枚举（脏值回退 TRANSLATE）+ DataStore broadcastMode 键 + 「播报模式」设置卡 + 默认值/持久化单测
   - 验收：默认 TRANSLATE；脏值回退；往返持久化单测绿
 - [ ] 2. TranslateService.explain + StepfunTranslateClient 实现（EXPLAIN prompt/max_tokens 4096/截断/解析）+ 单测
   - 验收：prompt 逐字契约；解析与错误映射绿

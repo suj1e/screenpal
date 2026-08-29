@@ -27,6 +27,8 @@ data class MainUiState(
     val stepfunVoice: String = "tianmeinvsheng",
     // 框选方式（2026-08-29-selection-mode）：LASSO 随手画 / RECT 长方形，默认随手画。
     val selectionMode: String = "LASSO",
+    // 播报模式（2026-08-29-broadcast-mode）：TRANSLATE 翻译朗读 / EXPLAIN AI 讲解，默认翻译朗读。
+    val broadcastMode: String = "TRANSLATE",
     val overlayPermissionGranted: Boolean = false,
     val notificationPermissionGranted: Boolean = false,
     // 无障碍截屏主路径开关（2026-08-29-permission-tri-card）：实时读系统回显，
@@ -65,7 +67,8 @@ class MainViewModel(
                     translationEnabled = settings.translationEnabled,
                     stepfunApiKey = settings.stepfunApiKey,
                     stepfunVoice = settings.stepfunVoice,
-                    selectionMode = settings.selectionMode
+                    selectionMode = settings.selectionMode,
+                    broadcastMode = settings.broadcastMode
                 )
                 maybeAutoStartFloatingService()
             }
@@ -123,6 +126,7 @@ class MainViewModel(
             stepfunApiKey = stepfunApiKey,
             stepfunVoice = stepfunVoice,
             selectionMode = selectionMode,
+            broadcastMode = broadcastMode,
             // Runtime-only permission badges are not persisted; keep current view.
             overlayPermissionGranted = state.overlayPermissionGranted,
             notificationPermissionGranted = state.notificationPermissionGranted,
@@ -140,7 +144,8 @@ class MainViewModel(
             translationEnabled = translationEnabled,
             stepfunApiKey = stepfunApiKey,
             stepfunVoice = stepfunVoice,
-            selectionMode = selectionMode
+            selectionMode = selectionMode,
+            broadcastMode = broadcastMode
         )
 
     fun setTtsEngine(engine: String) = update { it.copy(ttsEngine = engine) }
@@ -158,6 +163,8 @@ class MainViewModel(
     fun setStepfunVoice(voice: String) = update { it.copy(stepfunVoice = voice) }
 
     fun setSelectionMode(mode: String) = update { it.copy(selectionMode = mode) }
+
+    fun setBroadcastMode(mode: String) = update { it.copy(broadcastMode = mode) }
 
     /**
      * Start the floating window only when required permissions are granted.

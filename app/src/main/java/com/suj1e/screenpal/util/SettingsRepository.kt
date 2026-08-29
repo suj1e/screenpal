@@ -27,7 +27,9 @@ data class UserSettings(
     val translationEnabled: Boolean = true,
     val stepfunApiKey: String = "",
     val stepfunVoice: String = "tianmeinvsheng",
-    val selectionMode: String = "LASSO"
+    val selectionMode: String = "LASSO",
+    // 播报模式（2026-08-29-broadcast-mode）：TRANSLATE 翻译朗读 / EXPLAIN AI 讲解，默认翻译朗读。
+    val broadcastMode: String = "TRANSLATE"
 )
 
 class SettingsRepository(private val context: Context) {
@@ -44,7 +46,8 @@ class SettingsRepository(private val context: Context) {
             translationEnabled = prefs[KEY_TRANSLATION_ENABLED] ?: true,
             stepfunApiKey = prefs[KEY_STEPFUN_API_KEY] ?: "",
             stepfunVoice = prefs[KEY_STEPFUN_VOICE] ?: "tianmeinvsheng",
-            selectionMode = prefs[KEY_SELECTION_MODE] ?: "LASSO"
+            selectionMode = prefs[KEY_SELECTION_MODE] ?: "LASSO",
+            broadcastMode = prefs[KEY_BROADCAST_MODE] ?: "TRANSLATE"
         )
     }
 
@@ -57,11 +60,12 @@ class SettingsRepository(private val context: Context) {
                 ttsPitch = prefs[KEY_TTS_PITCH] ?: 1.0f,
                 ocrMode = prefs[KEY_OCR_MODE] ?: "HYBRID",
                 translationEnabled = prefs[KEY_TRANSLATION_ENABLED] ?: true,
-                stepfunApiKey = prefs[KEY_STEPFUN_API_KEY] ?: "",
-                stepfunVoice = prefs[KEY_STEPFUN_VOICE] ?: "tianmeinvsheng",
-                selectionMode = prefs[KEY_SELECTION_MODE] ?: "LASSO"
-            )
-            val updated = current.transform()
+            stepfunApiKey = prefs[KEY_STEPFUN_API_KEY] ?: "",
+            stepfunVoice = prefs[KEY_STEPFUN_VOICE] ?: "tianmeinvsheng",
+            selectionMode = prefs[KEY_SELECTION_MODE] ?: "LASSO",
+            broadcastMode = prefs[KEY_BROADCAST_MODE] ?: "TRANSLATE"
+        )
+        val updated = current.transform()
             prefs[KEY_FLOATING_WINDOW] = updated.floatingWindowEnabled
             prefs[KEY_TTS_ENGINE] = updated.ttsEngine
             prefs[KEY_TTS_RATE] = updated.ttsRate
@@ -71,6 +75,7 @@ class SettingsRepository(private val context: Context) {
             prefs[KEY_STEPFUN_API_KEY] = updated.stepfunApiKey
             prefs[KEY_STEPFUN_VOICE] = updated.stepfunVoice
             prefs[KEY_SELECTION_MODE] = updated.selectionMode
+            prefs[KEY_BROADCAST_MODE] = updated.broadcastMode
         }
     }
 
@@ -84,5 +89,6 @@ class SettingsRepository(private val context: Context) {
         private val KEY_STEPFUN_API_KEY = stringPreferencesKey("stepfun_api_key")
         private val KEY_STEPFUN_VOICE = stringPreferencesKey("stepfun_voice")
         private val KEY_SELECTION_MODE = stringPreferencesKey("selectionMode")
+        private val KEY_BROADCAST_MODE = stringPreferencesKey("broadcastMode")
     }
 }

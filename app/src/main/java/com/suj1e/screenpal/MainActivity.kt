@@ -175,9 +175,15 @@ fun MainScreen(
 
             ToggleCard(
                 title = "中文播报",
-                description = if (state.translationEnabled) "外文经 StepFun 转译为简体中文播报" else "已关闭：识别到什么语言就读什么语言",
+                description = "仅作用于翻译朗读模式；讲解模式总是走 AI。" +
+                    if (state.translationEnabled) "外文经 StepFun 转译为简体中文播报" else "已关闭：识别到什么语言就读什么语言",
                 checked = state.translationEnabled,
                 onCheckedChange = viewModel::setTranslationEnabled
+            )
+
+            BroadcastModeCard(
+                mode = state.broadcastMode,
+                onModeChange = viewModel::setBroadcastMode
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -373,6 +379,33 @@ fun SelectionModeCard(
             )
             EngineOptionRow("LASSO", "随手画（圈出任意形状，默认）", mode, onModeChange)
             EngineOptionRow("RECT", "长方形（拖拽框选矩形）", mode, onModeChange)
+        }
+    }
+}
+
+/**
+ * 「播报模式」卡（2026-08-29-broadcast-mode）：翻译朗读（外文转中文原样朗读，
+ * 默认）/ AI 讲解（问 AI 这是什么）两单选，插在「中文播报」卡之后。翻译模式
+ * 受「中文播报」开关控制；讲解模式总是走 AI（不受开关限制，显式选择即意图）。
+ * 持久化为 DataStore broadcastMode，截图框选页按此分发播报管道。
+ */
+@Composable
+fun BroadcastModeCard(
+    mode: String,
+    onModeChange: (String) -> Unit
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("播报模式", style = MaterialTheme.typography.titleMedium)
+            HorizontalDivider()
+
+            Text(
+                "翻译模式受「中文播报」开关控制；讲解模式总是走 AI",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            EngineOptionRow("TRANSLATE", "翻译朗读：外文转中文原样朗读（默认）", mode, onModeChange)
+            EngineOptionRow("EXPLAIN", "AI 讲解：问 AI 这是什么", mode, onModeChange)
         }
     }
 }
