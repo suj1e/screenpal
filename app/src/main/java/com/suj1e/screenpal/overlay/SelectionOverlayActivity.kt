@@ -806,8 +806,13 @@ class SelectionOverlayActivity : ComponentActivity() {
                 )
             } else {
                 phase = nextSelectionPhase(phase, SelectionPhaseAction.REJECT)
-                performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                clearRect()
+                if (dragRect?.isEmpty == true) {
+                    // 轻点空白 = 退出框选流程（与 LASSO 的轻点语义一致）。
+                    this@SelectionOverlayActivity.finish()
+                } else {
+                    performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                    clearRect()
+                }
             }
         }
 
@@ -830,9 +835,15 @@ class SelectionOverlayActivity : ComponentActivity() {
                     )
                 )
             } else {
+                val tapped = strokePoints.size <= 1
                 phase = nextSelectionPhase(phase, SelectionPhaseAction.REJECT)
-                performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                 clearStroke()
+                if (tapped) {
+                    // 轻点空白 = 「我点错了」，退出整个框选流程。
+                    this@SelectionOverlayActivity.finish()
+                } else {
+                    performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                }
             }
         }
 
