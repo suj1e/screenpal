@@ -31,28 +31,34 @@ object PermissionHelper {
     }
 
     fun requestOverlayPermission(activity: Activity) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return
+        activity.startActivityForResult(overlayPermissionIntent(activity), REQUEST_OVERLAY)
+    }
 
-        // MIUI/HyperOS 不认带 package URI 的标准悬浮窗 Intent，会回退到
-        // 「所有应用」总列表要求逐个查找——直接跳本 App 的应用详情页，
-        // 悬浮窗开关就在其中（全 ROM 可靠）。
-        val manufacturer = Build.MANUFACTURER.uppercase()
-        if (manufacturer.contains("XIAOMI") || manufacturer.contains("REDMI")) {
-            activity.startActivityForResult(
-                Intent(
+    /**
+     * 悬浮窗授权 Intent（Activity 用 startActivityForResult；Service 语境
+     * 需另加 FLAG_ACTIVITY_NEW_TASK）。三级回落：MIUI 权限编辑页 → 应用详情页
+     * → 标准总列表。MIUI/HyperOS 不认带 package URI 的标准 Intent，且应用
+     * 详情页里的「显示悬浮窗」开关并不等于真正的授权——真开关在「权限管理」
+     * 编辑页（带 pkgname 直达）。
+     */
+    fun overlayPermissionIntent(context: Context): Intent {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val manufacturer = Build.MANUFACTURER.uppercase()
+            if (manufacturer.contains("XIAOMI") || manufacturer.contains("REDMI")) {
+                getOemSpecialIntent(context)?.let { return it }
+                return Intent(
                     Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                    Uri.parse("package:${activity.packageName}")
-                ),
-                REQUEST_OVERLAY
+                    Uri.parse("package:${context.packageName}")
+                ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            return Intent(
+                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                Uri.parse("package:${context.packageName}")
             )
-            return
         }
-
-        val intent = Intent(
-            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-            Uri.parse("package:${activity.packageName}")
-        )
-        activity.startActivityForResult(intent, REQUEST_OVERLAY)
+        return Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+            Uri.parse("package:${context.packageName}"))
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     }
 
     fun requestNotificationPermission(activity: Activity) {

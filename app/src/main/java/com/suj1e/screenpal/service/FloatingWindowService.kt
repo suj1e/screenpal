@@ -20,6 +20,7 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.Toast
 import com.suj1e.screenpal.R
+import com.suj1e.screenpal.util.PermissionHelper
 import com.suj1e.screenpal.ScreenPalApplication
 import com.suj1e.screenpal.overlay.SelectionOverlayActivity
 import com.suj1e.screenpal.util.AccessibilityHelper
@@ -84,6 +85,12 @@ class FloatingWindowService : Service() {
     }
 
     private fun showFloatingBall() {
+        if (!Settings.canDrawOverlays(this)) {
+            // MIUI/HyperOS revokes the grant even when the app-details toggle
+            // says on — never crash the FGS; just surface the state.
+            Toast.makeText(this, "悬浮窗权限已被系统收回，请重新授权", Toast.LENGTH_LONG).show()
+            return
+        }
         val view = LayoutInflater.from(this).inflate(R.layout.view_floating_ball, null)
 
         val params = WindowManager.LayoutParams(
@@ -169,6 +176,16 @@ class FloatingWindowService : Service() {
     private fun onBallClicked() {
         android.util.Log.d(TAG, "ball clicked, hasProjection=${(application as ScreenPalApplication).hasValidMediaProjection()}")
         removeFloatingBall()
+        if (!Settings.canDrawOverlays(this)) {
+            // Grant was revoked after the ball was added (MIUI does this);
+            // entering the pipeline would leave us ball-less with no recovery.
+            restoreAfterFailure("悬浮窗权限已被系统收回")
+            startActivity(
+                PermissionHelper.overlayPermissionIntent(this)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
+            return
+        }
         when (
             resolveScreenshotRoute(
                 sdkInt = Build.VERSION.SDK_INT,
