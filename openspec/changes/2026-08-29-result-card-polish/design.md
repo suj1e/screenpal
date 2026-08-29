@@ -4,7 +4,7 @@
 
 **图示**：[diagrams/result-card.svg](diagrams/result-card.svg)
 
-1. **胶囊背景**：`GradientDrawable().apply { cornerRadius = 999dp; setColor(WHITE); setStroke(1dp, 0x66FF7B68EE) }`；pressed 态 `StateListDrawable` 叠加 `#14000000` 底色反馈。
+1. **胶囊背景**：`GradientDrawable().apply { cornerRadius = 999dp; setColor(WHITE); setStroke(1.5dp, 0x66FF7B68EE) }`；pressed 态 `StateListDrawable` 叠加 `#14000000` 底色反馈。
 2. **按钮行**：LinearLayout horizontal，四按钮各 `layoutParams(weight=1, margin horizontal 4dp)`，高 44dp，文字 15sp medium `#FF7B68EE`，全大写关闭。
 3. **文本区**：resultText 外包 ScrollView（maxHeight 由卡片约束），maxLines 移除改滚动，保证长文不挤按钮。
 4. 复用现状逻辑：四按钮 onClick 行为零改动。

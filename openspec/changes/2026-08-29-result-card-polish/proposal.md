@@ -6,7 +6,7 @@
 
 ## What Changes
 
-- 结果卡四按钮（停止播报/复制/重新框选/完成）改为**胶囊样式**：白底 + 品牌紫文字（#FF7B68EE）+ 1dp 紫描边（40% 透明）+ 999dp 圆角 + 等权重均分 + 8dp 间距 + 15sp medium
+- 结果卡四按钮（停止播报/复制/重新框选/完成）改为**胶囊样式**：白底 + 品牌紫文字（#FF7B68EE）+ 1.5dp 紫描边（40% 透明）+ 999dp 圆角 + 等权重均分 + 4dp 水平间距（相邻合计 8dp） + 15sp medium
 - 实现：程序化 GradientDrawable + StateListDrawable（按下加深底色反馈），无新依赖、无资源文件
 - 识别文本区：maxLines 8 + 可滚动（ScrollView 包裹），避免长文本挤压按钮行
 - 被否选项：MaterialButton 描边样式（theme 侵入大）；图标按钮（无障碍场景文字更友好）

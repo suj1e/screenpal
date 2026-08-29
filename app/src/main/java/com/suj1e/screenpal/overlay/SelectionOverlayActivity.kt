@@ -312,6 +312,7 @@ class SelectionOverlayActivity : ComponentActivity() {
     private lateinit var selectionView: SelectionView
     private lateinit var resultCard: LinearLayout
     private lateinit var resultText: TextView
+    private var textScroll: android.widget.ScrollView? = null
     private lateinit var resultMeta: TextView
     private val viewModel = SelectionViewModel()
     private var lastRecognizedText: String = ""
@@ -429,6 +430,7 @@ class SelectionOverlayActivity : ComponentActivity() {
                 lastRecognizedText = result.text
                 // 卡片先出 OCR 原文；翻译完成后把主显更新为实际播报文本。
                 resultText.text = result.text.ifBlank { "（未识别到文字）" }
+                textScroll?.post { textScroll?.scrollTo(0, 0) }
                 resultMeta.text = "置信度 %.0f%% · ${result.blocks.size} 个文本块".format(result.confidence * 100)
 
                 if (result.text.isNotBlank()) {
@@ -458,6 +460,7 @@ class SelectionOverlayActivity : ComponentActivity() {
                         pipeline?.lastSpokenText?.let { spoken ->
                             if (spoken != result.text) {
                                 resultText.text = spoken
+                                textScroll?.post { textScroll?.scrollTo(0, 0) }
                                 val original = result.text.take(120) + if (result.text.length > 120) "…" else ""
                                 resultMeta.text = resultMeta.text.toString() + " · 原文：" + original
                             }
@@ -534,7 +537,7 @@ class SelectionOverlayActivity : ComponentActivity() {
         // 识别文本滚动区（2026-08-29-result-card-polish）：maxLines 改 ScrollView
         // 滚动，限高屏高 40%（onMeasure 超限截断），长文不再挤压按钮行。
         val maxTextHeightPx = resultTextMaxHeightPx(resources.displayMetrics.heightPixels)
-        val textScroll = object : ScrollView(this) {
+        textScroll = object : ScrollView(this) {
             override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
                 super.onMeasure(widthMeasureSpec, heightMeasureSpec)
                 if (measuredHeight > maxTextHeightPx) {
@@ -542,7 +545,7 @@ class SelectionOverlayActivity : ComponentActivity() {
                 }
             }
         }
-        textScroll.addView(resultText)
+        textScroll!!.addView(resultText)
 
         // 胶囊按钮（2026-08-29-result-card-polish）：白底品牌紫、1.5dp 40% 透明描边、
         // 999dp 圆角、44dp 高、等权重均分、水平 4dp 间距、15sp medium；按压反馈由

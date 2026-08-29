@@ -174,7 +174,7 @@ class SelectionOverlayResultCardWiringTest {
     fun textArea_scrollerAddedBeforeMetaAndActions() {
         assertTrue(
             "文本必须挂在滚动区里",
-            overlaySrc.contains("textScroll.addView(resultText)")
+            overlaySrc.contains("textScroll!!.addView(resultText)")
         )
         val scrollAdds = overlaySrc.indexOf("card.addView(textScroll)")
         val metaAdds = overlaySrc.indexOf("card.addView(resultMeta)")
