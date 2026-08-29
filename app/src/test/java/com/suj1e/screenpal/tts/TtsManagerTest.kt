@@ -119,10 +119,9 @@ class TtsManagerFallbackTest {
 }
 
 /**
- * Fallback matrix after Doubao (火山引擎) became the CLOUD engine
- * (2026-08-27-tts-domestic-online):
- *   CLOUD selected: Doubao -> Piper -> System (missing credentials = null factory
- *   drops straight to Piper); PIPER selected: Piper -> Doubao -> System.
+ * Fallback matrix after StepFun became the CLOUD engine (2026-08-29-stepfun-only):
+ *   CLOUD selected: StepFun -> Piper -> System (missing credentials = null factory
+ *   drops straight to Piper); PIPER selected: Piper -> StepFun -> System.
  */
 class TtsManagerCloudFallbackTest {
 
@@ -151,9 +150,9 @@ class TtsManagerCloudFallbackTest {
             TtsEngineType.CLOUD
         )
 
-        manager.speak("豆包失败降级")
+        manager.speak("在线失败降级")
 
-        assertEquals(listOf("豆包失败降级"), piper.spokenTexts)
+        assertEquals(listOf("在线失败降级"), piper.spokenTexts)
         assertTrue(systemFake.spokenTexts.isEmpty())
     }
 
@@ -174,7 +173,7 @@ class TtsManagerCloudFallbackTest {
 
     @Test
     fun cloudSelected_factoryReturnsNull_goesStraightToPiper() = kotlinx.coroutines.runBlocking {
-        // Missing Volcano credentials -> factory yields null -> Piper speaks directly.
+        // Missing StepFun credentials -> factory yields null -> Piper speaks directly.
         val piper = FakeTtsEngine()
         val (manager, systemFake, _) = buildManager(piper, null, TtsEngineType.CLOUD)
 
@@ -190,9 +189,9 @@ class TtsManagerCloudFallbackTest {
         val cloud = FakeTtsEngine()
         val (manager, systemFake, _) = buildManager(piper, cloud, TtsEngineType.PIPER)
 
-        manager.speak("Piper 失败走豆包")
+        manager.speak("Piper 失败走在线")
 
-        assertEquals(listOf("Piper 失败走豆包"), cloud.spokenTexts)
+        assertEquals(listOf("Piper 失败走在线"), cloud.spokenTexts)
         assertTrue(piper.spokenTexts.isEmpty())
         assertTrue(systemFake.spokenTexts.isEmpty())
     }

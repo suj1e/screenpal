@@ -18,7 +18,7 @@ data class TtsConfig(
 
 /**
  * Unified TTS entry point. Picks the engine configured in settings and degrades
- * automatically: CLOUD(豆包/火山引擎) -> PIPER -> SYSTEM whichever slot fails.
+ * automatically: CLOUD(StepFun) -> PIPER -> SYSTEM whichever slot fails.
  */
 class TtsManager(
     private val context: Context,

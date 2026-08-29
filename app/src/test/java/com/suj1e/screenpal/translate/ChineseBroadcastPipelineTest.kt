@@ -80,7 +80,7 @@ class ChineseBroadcastPipelineTest {
 
     @Test
     fun translationFails_missingKey_fallsBackToOriginal() = runTest {
-        val service = FakeTranslateService { throw TranslationException("翻译缺少火山方舟 API Key") }
+        val service = FakeTranslateService { throw TranslationException("翻译缺少 StepFun API Key") }
         val pipeline = ChineseBroadcastPipeline(service)
         val tts = tts()
 

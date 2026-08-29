@@ -29,7 +29,7 @@ import java.io.IOException
 
 /**
  * StepfunOcrProvider（StepFun 视觉）契约测试（Robolectric + Ktor MockEngine）：
- * 请求组装（system prompt 同豆包逐字 / user image data URL / model step-3.7-flash）、
+ * 请求组装（system prompt 逐字契约 / user image data URL / model step-3.7-flash）、
  * 多行解析（TextBlock 切分/置信度 0.99/空矩形）、错误映射（401/429/5xx/空 content/畸形响应/网络异常）。
  */
 @RunWith(RobolectricTestRunner::class)
@@ -97,8 +97,12 @@ class StepfunOcrProviderTest {
         assertEquals(2, messages.size)
         val system = messages[0].jsonObject
         assertEquals("system", system["role"]!!.jsonPrimitive.content)
-        // system prompt 与豆包云 OCR 逐字一致（同一 OCR 约束）
-        assertEquals(CloudOcrProvider.SYSTEM_PROMPT, system["content"]!!.jsonPrimitive.content)
+        // system prompt 逐字契约（OCR 约束：只输出文字、按阅读顺序、无解释标注）
+        assertEquals(
+            "你是 OCR 引擎。只输出图片中的文字，按阅读顺序（先上后下、先左后右），" +
+                "不要任何解释、标注或额外符号。",
+            system["content"]!!.jsonPrimitive.content
+        )
 
         val user = messages[1].jsonObject
         assertEquals("user", user["role"]!!.jsonPrimitive.content)

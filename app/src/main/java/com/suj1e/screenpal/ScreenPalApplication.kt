@@ -5,10 +5,12 @@ import android.media.projection.MediaProjection
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import com.suj1e.screenpal.tts.PiperTtsEngine
+import com.suj1e.screenpal.tts.StepfunTtsEngine
 import com.suj1e.screenpal.tts.SystemTtsEngine
+import com.suj1e.screenpal.tts.TtsEngine
 import com.suj1e.screenpal.tts.TtsManager
-import com.suj1e.screenpal.vendor.VendorRouter
 import com.suj1e.screenpal.util.SettingsRepository
+import com.suj1e.screenpal.util.UserSettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -36,11 +38,11 @@ open class ScreenPalApplication : Application() {
         ttsManager = TtsManager(
             context = this,
             piperEngine = PiperTtsEngine(this),
-            // CLOUD 槽位按设置的服务商路由（DOUBAO / STEPFUN）；凭据缺失返回 null，
+            // CLOUD 槽位直连 StepFun：API Key 非空才可用；缺失返回 null，
             // 由 TtsManager 落 Piper → 系统兜底。
             cloudProviderFactory = {
                 val s = settingsRepository.userSettings.first()
-                VendorRouter.createTtsEngine(s, this)
+                cloudTtsEngine(s, this)
             },
             systemEngineProvider = { SystemTtsEngine(this) },
             settingsProvider = {
@@ -93,5 +95,20 @@ open class ScreenPalApplication : Application() {
         } finally {
             mediaProjection = null
         }
+    }
+
+    companion object {
+        /**
+         * CLOUD 槽位工厂：StepFun API Key 非空 → [StepfunTtsEngine]（音色空回落
+         * 默认音色）；否则 null（上层落 Piper → 系统兜底）。
+         */
+        internal fun cloudTtsEngine(settings: UserSettings, context: android.content.Context): TtsEngine? =
+            settings.stepfunApiKey.takeIf { it.isNotBlank() }?.let {
+                StepfunTtsEngine(
+                    context = context,
+                    apiKey = it,
+                    voice = settings.stepfunVoice.ifBlank { StepfunTtsEngine.DEFAULT_VOICE }
+                )
+            }
     }
 }

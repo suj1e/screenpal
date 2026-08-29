@@ -29,10 +29,13 @@ import com.suj1e.screenpal.ScreenPalApplication
 import com.suj1e.screenpal.ocr.HybridOcrEngine
 import com.suj1e.screenpal.ocr.OcrEngine
 import com.suj1e.screenpal.ocr.OcrMode
+import com.suj1e.screenpal.ocr.StepfunOcrProvider
 import com.suj1e.screenpal.ocr.paddle.PaddleOcrProvider
 import com.suj1e.screenpal.translate.BroadcastOutcome
 import com.suj1e.screenpal.translate.ChineseBroadcastPipeline
-import com.suj1e.screenpal.vendor.VendorRouter
+import com.suj1e.screenpal.translate.StepfunTranslateClient
+import com.suj1e.screenpal.translate.TranslateService
+import com.suj1e.screenpal.util.UserSettings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -117,6 +120,22 @@ class SelectionOverlayActivity : ComponentActivity() {
             BroadcastOutcome.FallbackOriginal -> " · 翻译不可用"
             BroadcastOutcome.Direct -> null
         }
+
+        /**
+         * 云侧 OCR 引擎（CLOUD 模式 / HYBRID 云侧）直连 StepFun：Key 非空 →
+         * [StepfunOcrProvider]；否则 null（上层落端侧 Paddle）。
+         */
+        internal fun cloudOcrEngine(settings: UserSettings): OcrEngine? =
+            settings.stepfunApiKey.takeIf { it.isNotBlank() }
+                ?.let { StepfunOcrProvider(apiKey = it) }
+
+        /**
+         * AI 转译客户端（中文播报管道）直连 StepFun：Key 非空 →
+         * [StepfunTranslateClient]；否则 null（上层播原文）。
+         */
+        internal fun translateClient(settings: UserSettings): TranslateService? =
+            settings.stepfunApiKey.takeIf { it.isNotBlank() }
+                ?.let { StepfunTranslateClient(apiKey = it) }
     }
 
     private lateinit var screenshotBitmap: Bitmap
@@ -230,9 +249,9 @@ class SelectionOverlayActivity : ComponentActivity() {
                 if (result.text.isNotBlank()) {
                     try {
                         val settings = app.settingsRepository.userSettings.first()
-                        // 转译客户端按所选服务商路由；缺凭据（null）直接落「播原文」语义，
+                        // 转译客户端直连 StepFun；缺凭据（null）直接落「播原文」语义，
                         // 与管道内翻译失败降级一致（结果卡标注「翻译不可用」）。
-                        val pipeline = VendorRouter.createTranslateClient(settings)
+                        val pipeline = translateClient(settings)
                             ?.let { ChineseBroadcastPipeline(it) }
                         val outcome = if (pipeline != null) {
                             pipeline.broadcast(
@@ -276,7 +295,7 @@ class SelectionOverlayActivity : ComponentActivity() {
         }
     }
 
-    /** Choose LOCAL/CLOUD/HYBRID per settings; cloud side routes by vendor; degrade to LOCAL if cloud config missing. */
+    /** Choose LOCAL/CLOUD/HYBRID per settings; cloud side is StepFun; degrade to LOCAL if key missing. */
     private suspend fun resolveOcrEngine(app: ScreenPalApplication): OcrEngine {
         val settings = app.settingsRepository.userSettings.first()
         val mode = runCatching { OcrMode.valueOf(settings.ocrMode.uppercase()) }
@@ -285,13 +304,13 @@ class SelectionOverlayActivity : ComponentActivity() {
         return withContext(Dispatchers.Default) {
             when (mode) {
                 OcrMode.LOCAL -> PaddleOcrProvider.getInstance(app)
-                OcrMode.CLOUD -> VendorRouter.createOcrEngine(settings) ?: run {
-                    Log.w(TAG, "Cloud OCR without vendor credentials; degrading to local")
+                OcrMode.CLOUD -> cloudOcrEngine(settings) ?: run {
+                    Log.w(TAG, "Cloud OCR without StepFun credentials; degrading to local")
                     PaddleOcrProvider.getInstance(app)
                 }
                 OcrMode.HYBRID -> HybridOcrEngine(
                     PaddleOcrProvider.getInstance(app),
-                    cloudProvider = VendorRouter.createOcrEngine(settings),
+                    cloudProvider = cloudOcrEngine(settings),
                     confidenceThreshold = 0.75f
                 )
             }

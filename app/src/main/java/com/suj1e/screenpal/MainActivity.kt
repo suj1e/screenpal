@@ -41,7 +41,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.suj1e.screenpal.ui.theme.ScreenPalTheme
-import com.suj1e.screenpal.vendor.VendorRouter
 import com.suj1e.screenpal.util.PermissionHelper
 
 class MainActivity : ComponentActivity() {
@@ -249,7 +248,7 @@ fun TtsSettingsCard(
     onRateChange: (Float) -> Unit,
     onPitchChange: (Float) -> Unit
 ) {
-    val onlineLabel = if (cloudVendor.equals(VendorRouter.VENDOR_STEPFUN, ignoreCase = true))
+    val onlineLabel = if (cloudVendor.equals("STEPFUN", ignoreCase = true))
         "在线语音（StepFun，凭据在「在线服务商」）" else "在线语音（豆包，凭据在「在线服务商」）"
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -298,7 +297,7 @@ fun VendorSettingsCard(
     onStepfunApiKeyChange: (String) -> Unit,
     onStepfunVoiceChange: (String) -> Unit
 ) {
-    val isStepfun = cloudVendor.equals(VendorRouter.VENDOR_STEPFUN, ignoreCase = true)
+    val isStepfun = cloudVendor.equals("STEPFUN", ignoreCase = true)
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("在线服务商", style = MaterialTheme.typography.titleMedium)
@@ -311,7 +310,7 @@ fun VendorSettingsCard(
             )
 
             EngineOptionRow(
-                VendorRouter.VENDOR_DOUBAO,
+                "DOUBAO",
                 "豆包（火山引擎）",
                 cloudVendor,
                 onVendorChange
@@ -348,7 +347,7 @@ fun VendorSettingsCard(
             }
 
             EngineOptionRow(
-                VendorRouter.VENDOR_STEPFUN,
+                "STEPFUN",
                 "StepFun（阶跃星辰）",
                 cloudVendor,
                 onVendorChange
@@ -379,7 +378,7 @@ fun OcrSettingsCard(
     cloudVendor: String,
     onModeChange: (String) -> Unit
 ) {
-    val vendorName = if (cloudVendor.equals(VendorRouter.VENDOR_STEPFUN, ignoreCase = true)) "StepFun" else "豆包"
+    val vendorName = if (cloudVendor.equals("STEPFUN", ignoreCase = true)) "StepFun" else "豆包"
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("OCR 设置", style = MaterialTheme.typography.titleMedium)

@@ -20,11 +20,11 @@ import java.io.File
 
 /**
  * StepFun（阶跃星辰）online TTS engine, used for the CLOUD slot of the fallback
- * chain (StepFun -> Piper -> System) when the selected vendor is STEPFUN.
+ * chain (StepFun -> Piper -> System).
  *
  * OpenAI-compatible speech API: POST a JSON envelope, receive binary MP3 bytes,
- * write them to cacheDir and play via MediaPlayer (same stop semantics as
- * [DoubaoTtsEngine]).
+ * write them to cacheDir and play via MediaPlayer (stop semantics: stop() cuts
+ * the active playback immediately).
  *
  * Protocol constants live in [Companion] — change them there and the contract
  * tests in StepfunTtsEngineTest will flag any deliberate divergence.

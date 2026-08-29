@@ -19,7 +19,7 @@ import kotlinx.serialization.json.contentOrNull
 
 /**
  * AI 转译客户端（StepFun / 阶跃星辰）：调用 StepFun chat/completions 把任意语言
- * 转写为简体中文。system 转译指令与豆包版（[DoubaoTranslateClient]）逐字一致。
+ * 转写为简体中文。
  * 任何错误（无 Key / HTTP 错误码 / 网络异常 / 空、畸形响应）都抛 [TranslationException]，
  * 由上层管道决定是否降级播报原文。
  */
@@ -102,8 +102,10 @@ class StepfunTranslateClient(
         /** q 的上限：按 UTF-8 字节截断，防止超长文本放大 token 消耗。 */
         const val MAX_Q_UTF8_BYTES = 6000
 
-        /** 与豆包转译 prompt 逐字一致（见 StepfunTranslateClientTest 契约）。 */
-        const val SYSTEM_PROMPT = DoubaoTranslateClient.SYSTEM_PROMPT
+        /** 转译指令（契约见 StepfunTranslateClientTest 逐字断言）。 */
+        const val SYSTEM_PROMPT =
+            "你是转译引擎。将用户内容转写为简体中文：外文翻译为自然中文；" +
+                "保留必要专名并在括号内给出简短中文说明。只输出转写结果，不解释。"
 
         private val requestJson = Json { encodeDefaults = true }
         private val responseJson = Json { ignoreUnknownKeys = true }

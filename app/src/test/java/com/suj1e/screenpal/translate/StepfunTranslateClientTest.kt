@@ -20,7 +20,7 @@ import org.junit.Test
 
 /**
  * StepfunTranslateClient contract tests (JVM + Ktor MockEngine):
- * 请求组装（system 转译指令逐字同豆包/温度0/6000 字节截断/鉴权头/端点）、多行译文解析、错误映射。
+ * 请求组装（system 转译指令逐字契约/温度0/6000 字节截断/鉴权头/端点）、多行译文解析、错误映射。
  */
 class StepfunTranslateClientTest {
 
@@ -58,8 +58,12 @@ class StepfunTranslateClientTest {
         val messages = obj["messages"]!!.jsonArray
         assertEquals(2, messages.size)
         assertEquals("system", messages[0].jsonObject["role"]!!.jsonPrimitive.content)
-        // system 转译指令与豆包版逐字一致
-        assertEquals(DoubaoTranslateClient.SYSTEM_PROMPT, messages[0].jsonObject["content"]!!.jsonPrimitive.content)
+        // system 转译指令逐字契约（只输出转写结果、专名加注、不解释）
+        assertEquals(
+            "你是转译引擎。将用户内容转写为简体中文：外文翻译为自然中文；" +
+                "保留必要专名并在括号内给出简短中文说明。只输出转写结果，不解释。",
+            messages[0].jsonObject["content"]!!.jsonPrimitive.content
+        )
         assertEquals("user", messages[1].jsonObject["role"]!!.jsonPrimitive.content)
         assertEquals("hello", messages[1].jsonObject["content"]!!.jsonPrimitive.content)
     }

@@ -27,7 +27,7 @@ import java.io.ByteArrayOutputStream
 
 /**
  * 云 OCR（StepFun / 阶跃星辰）：调用 StepFun chat/completions 的 step 视觉模型，
- * 与豆包云 OCR（[CloudOcrProvider]）同构：同一 system OCR prompt、同一行切分解析、
+ * 同一 system OCR prompt、同一行切分解析、
  * 同一错误语义（[IllegalStateException] 由 Hybrid/上层降级端侧）。
  *
  * 视觉大模型不返回精确坐标：[TextBlock.boundingBox] 恒为空 [Rect]，UI 不消费坐标。
@@ -125,8 +125,10 @@ class StepfunOcrProvider(
         /** 视觉大模型不回逐块置信度，用固定高置信近似。 */
         const val CONFIDENCE = 0.99f
 
-        /** 与豆包云 OCR 逐字一致（同一 OCR 约束，见 StepfunOcrProviderTest 契约）。 */
-        const val SYSTEM_PROMPT = CloudOcrProvider.SYSTEM_PROMPT
+        /** OCR 约束（契约见 StepfunOcrProviderTest 逐字断言）。 */
+        const val SYSTEM_PROMPT =
+            "你是 OCR 引擎。只输出图片中的文字，按阅读顺序（先上后下、先左后右），" +
+                "不要任何解释、标注或额外符号。"
 
         private val responseJson = Json { ignoreUnknownKeys = true }
     }
