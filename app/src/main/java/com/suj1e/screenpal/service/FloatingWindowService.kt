@@ -21,11 +21,18 @@ import android.widget.Toast
 import com.suj1e.screenpal.R
 import com.suj1e.screenpal.ScreenPalApplication
 import com.suj1e.screenpal.overlay.SelectionOverlayActivity
+import com.suj1e.screenpal.util.AccessibilityHelper
+
+/** 截屏路由：无障碍静默截屏 / 未开启引导 / MediaProjection 兜底。 */
+internal enum class ScreenshotRoute { ACCESSIBILITY, GUIDE, MEDIA_PROJECTION }
 
 class FloatingWindowService : Service() {
 
     private lateinit var windowManager: WindowManager
     private var floatingView: View? = null
+
+    /** 无障碍截屏回调的落盘线程 → 主线程回投（launchSelection/Toast 都要求主线程）。 */
+    private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
 
     override fun onBind(intent: Intent): IBinder? = null
 
@@ -161,6 +168,67 @@ class FloatingWindowService : Service() {
     private fun onBallClicked() {
         android.util.Log.d(TAG, "ball clicked, hasProjection=${(application as ScreenPalApplication).hasValidMediaProjection()}")
         removeFloatingBall()
+        when (
+            resolveScreenshotRoute(
+                sdkInt = Build.VERSION.SDK_INT,
+                a11yEnabled = AccessibilityHelper.isEnabled(this),
+                a11yServiceRunning = ScreenPalAccessibilityService.isRunning()
+            )
+        ) {
+            ScreenshotRoute.ACCESSIBILITY -> captureViaAccessibility()
+            ScreenshotRoute.GUIDE -> showAccessibilityGuide()
+            ScreenshotRoute.MEDIA_PROJECTION -> legacyCapture()
+        }
+    }
+
+    /**
+     * 无障碍静默截屏：成功落盘转 URI 进框选；失败/限流 Toast 并恢复球。
+     * 实例在路由判定后仍可能刚好被杀（isRunning 与取实例非原子），回落录屏不阻塞。
+     */
+    private fun captureViaAccessibility() {
+        val service = ScreenPalAccessibilityService.instance ?: return legacyCapture()
+        service.captureCurrentScreen { bitmap ->
+            if (bitmap == null) {
+                restoreAfterFailure("截屏失败或太频繁，请重试")
+                return@captureCurrentScreen
+            }
+            Thread {
+                val uri = saveScreenshotBitmap(bitmap)
+                mainHandler.post {
+                    if (uri != null) {
+                        android.util.Log.d(TAG, "a11y capture success uri=$uri")
+                        launchSelection(uri)
+                    } else {
+                        restoreAfterFailure("截图数据为空")
+                    }
+                }
+            }.start()
+        }
+    }
+
+    /**
+     * 与 ScreenCaptureService.saveBitmapAndGetUri 同款落盘契约
+     * （cache/screenshots + JPEG + FileProvider），供框选页跨进程读取。
+     */
+    internal fun saveScreenshotBitmap(bitmap: android.graphics.Bitmap): android.net.Uri? = try {
+        val dir = java.io.File(cacheDir, ScreenCaptureService.CAPTURE_DIR).apply { mkdirs() }
+        val file = java.io.File(dir, "screenshot_${System.currentTimeMillis()}.jpg")
+        java.io.FileOutputStream(file).use { out ->
+            bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, ScreenCaptureService.JPEG_QUALITY, out)
+        }
+        bitmap.recycle()
+        androidx.core.content.FileProvider.getUriForFile(
+            this,
+            "${applicationContext.packageName}.fileprovider",
+            file
+        )
+    } catch (e: Exception) {
+        android.util.Log.e(TAG, "save screenshot bitmap failed", e)
+        null
+    }
+
+    /** 原 MediaProjection 兜底路径（API<30、无障碍未就绪、实例被杀时）。 */
+    private fun legacyCapture() {
         captureScreen(object : CaptureCallback {
             override fun onSuccess(uri: android.net.Uri?) {
                 android.util.Log.d(TAG, "capture success uri=$uri")
@@ -176,6 +244,12 @@ class FloatingWindowService : Service() {
                 }
             }
         })
+    }
+
+    /** 未开启无障碍的引导对话框（task 3 接真实对话框，暂回落录屏）。 */
+    private fun showAccessibilityGuide() {
+        android.util.Log.d(TAG, "a11y disabled: guide dialog pending (task 3), falling back to projection")
+        legacyCapture()
     }
 
     private fun restoreAfterFailure(reason: String) {
@@ -254,6 +328,24 @@ class FloatingWindowService : Service() {
         const val TAG = "ScreenPalFlow"
         const val ERROR_NEED_AUTH = 1001
         const val ERROR_CAPTURE_FAILED = 1002
+
+        /**
+         * 截屏路由决策（纯函数，供矩阵单测）：
+         * - API < 30（无 takeScreenshot）→ MediaProjection 兜底；
+         * - API ≥ 30 且未开启无障碍 → 引导对话框；
+         * - API ≥ 30 且已开启且服务实例在 → 无障碍静默截屏；
+         * - 系统显示已启用但实例被杀 → 回落 MediaProjection，不阻塞。
+         */
+        internal fun resolveScreenshotRoute(
+            sdkInt: Int,
+            a11yEnabled: Boolean,
+            a11yServiceRunning: Boolean
+        ): ScreenshotRoute = when {
+            sdkInt < 30 -> ScreenshotRoute.MEDIA_PROJECTION
+            !a11yEnabled -> ScreenshotRoute.GUIDE
+            a11yServiceRunning -> ScreenshotRoute.ACCESSIBILITY
+            else -> ScreenshotRoute.MEDIA_PROJECTION
+        }
 
         /** Process-scoped liveness flag; the service dies with the process. */
         @Volatile

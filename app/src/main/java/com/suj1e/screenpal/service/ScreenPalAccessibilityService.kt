@@ -2,7 +2,12 @@ package com.suj1e.screenpal.service
 
 import android.accessibilityservice.AccessibilityService
 import android.content.Intent
+import android.graphics.Bitmap
+import android.os.Build
+import android.util.Log
+import android.view.Display
 import android.view.accessibility.AccessibilityEvent
+import androidx.core.content.ContextCompat
 
 /**
  * 静默截屏通道（2026-08-29-a11y-screenshot）。
@@ -34,6 +39,62 @@ open class ScreenPalAccessibilityService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) = Unit
 
     override fun onInterrupt() = Unit
+
+    /**
+     * 静默截取当前屏幕（API 30+）。
+     *
+     * takeScreenshot(DEFAULT_DISPLAY) → hardware buffer → [Bitmap.wrapHardwareBuffer]
+     * → 软位图拷贝 → buffer 立即 close。限流（约 333ms 间隔，回调
+     * [AccessibilityService.ERROR_TAKE_SCREENSHOT_INTERVAL_TIME_SHORT]）、失败、
+     * buffer 异常一律 onResult(null)，由调用方 Toast 提示重试。
+     * 回调固定在主线程（main executor）。
+     */
+    fun captureCurrentScreen(onResult: (Bitmap?) -> Unit) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            onResult(null)
+            return
+        }
+        try {
+            takeScreenshot(
+                Display.DEFAULT_DISPLAY,
+                ContextCompat.getMainExecutor(this),
+                object : TakeScreenshotCallback {
+                    override fun onSuccess(screenshot: ScreenshotResult) {
+                        onResult(softwareBitmapFrom(screenshot))
+                    }
+
+                    override fun onFailure(errorCode: Int) {
+                        Log.e(TAG, "takeScreenshot failed errorCode=$errorCode")
+                        onResult(null)
+                    }
+                }
+            )
+        } catch (e: Exception) {
+            // 服务断连等系统侧异常：按失败处理，不向调用方抛出。
+            Log.e(TAG, "takeScreenshot threw", e)
+            onResult(null)
+        }
+    }
+
+    /** ScreenshotResult → 软位图；hardware buffer 用完即关，任何异常返回 null。 */
+    private fun softwareBitmapFrom(screenshot: ScreenshotResult): Bitmap? {
+        val buffer = screenshot.hardwareBuffer ?: return null
+        try {
+            val hardware = Bitmap.wrapHardwareBuffer(buffer, screenshot.colorSpace)
+                ?: return null
+            return try {
+                // 硬件位图仅渲染期有效，拷贝为软位图后再交上层落盘。
+                hardware.copy(Bitmap.Config.ARGB_8888, false)
+            } finally {
+                hardware.recycle()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "hardware buffer → bitmap failed", e)
+            return null
+        } finally {
+            buffer.close()
+        }
+    }
 
     companion object {
         const val TAG = "ScreenPalFlow"

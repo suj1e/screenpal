@@ -22,7 +22,7 @@ class BrandCopyTest {
      * utterance ID, and the package name itself.
      */
     private val allowedScreenPalTokens = Regex(
-        "ScreenPalApplication|ScreenPalTheme|ScreenPalFlow|" +
+        "ScreenPalApplication|ScreenPalAccessibilityService|ScreenPalTheme|ScreenPalFlow|" +
             "ScreenPal_Floating|ScreenPal_Capture|ScreenPal_Utterance|" +
             "com\\.suj1e\\.screenpal"
     )
