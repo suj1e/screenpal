@@ -60,12 +60,12 @@ class SettingsRepository(private val context: Context) {
                 ttsPitch = prefs[KEY_TTS_PITCH] ?: 1.0f,
                 ocrMode = prefs[KEY_OCR_MODE] ?: "HYBRID",
                 translationEnabled = prefs[KEY_TRANSLATION_ENABLED] ?: true,
-            stepfunApiKey = prefs[KEY_STEPFUN_API_KEY] ?: "",
-            stepfunVoice = prefs[KEY_STEPFUN_VOICE] ?: "tianmeinvsheng",
-            selectionMode = prefs[KEY_SELECTION_MODE] ?: "LASSO",
-            broadcastMode = prefs[KEY_BROADCAST_MODE] ?: "TRANSLATE"
-        )
-        val updated = current.transform()
+                stepfunApiKey = prefs[KEY_STEPFUN_API_KEY] ?: "",
+                stepfunVoice = prefs[KEY_STEPFUN_VOICE] ?: "tianmeinvsheng",
+                selectionMode = prefs[KEY_SELECTION_MODE] ?: "LASSO",
+                broadcastMode = prefs[KEY_BROADCAST_MODE] ?: "TRANSLATE"
+            )
+            val updated = current.transform()
             prefs[KEY_FLOATING_WINDOW] = updated.floatingWindowEnabled
             prefs[KEY_TTS_ENGINE] = updated.ttsEngine
             prefs[KEY_TTS_RATE] = updated.ttsRate

@@ -101,13 +101,19 @@ class MainViewModelVendorSettingsTest {
 
         val deadline = System.currentTimeMillis() + 5_000
         var settings = repository.userSettings.first()
-        while (settings.ttsRate != 1.5f && System.currentTimeMillis() < deadline) {
+        while ((settings.ttsRate != 1.5f ||
+                settings.stepfunApiKey != "sk-keep" ||
+                settings.stepfunVoice != "wenying") && System.currentTimeMillis() < deadline) {
             Thread.sleep(20)
             settings = repository.userSettings.first()
         }
         assertEquals("sk-keep", settings.stepfunApiKey)
         assertEquals("wenying", settings.stepfunVoice)
         assertEquals(1.5f, settings.ttsRate)
+
+        // Self-clean: later test classes share this DataStore file and assert
+        // their own defaults (same fix as MainViewModelSelectionModeTest).
+        runBlocking { repository.update { copy(ttsRate = 1.0f, stepfunApiKey = "") } }
     }
 
     private suspend fun awaitPersisted(
