@@ -1,5 +1,6 @@
 package com.suj1e.screenpal
 
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -41,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.suj1e.screenpal.ui.theme.ScreenPalTheme
+import com.suj1e.screenpal.util.AccessibilityHelper
 import com.suj1e.screenpal.util.PermissionHelper
 
 class MainActivity : ComponentActivity() {
@@ -102,8 +104,15 @@ fun MainScreen(
             PermissionCard(
                 overlayGranted = state.overlayPermissionGranted,
                 notificationGranted = state.notificationPermissionGranted,
+                accessibilityEnabled = state.accessibilityEnabled,
                 onRequestOverlay = onRequestOverlayPermission,
-                onRequestNotification = onRequestNotificationPermission
+                onRequestNotification = onRequestNotificationPermission,
+                onRequestAccessibility = {
+                    // 免弹窗截屏主路径：直跳系统无障碍设置（新任务栈，Robolectric/非 Activity 均可拉起）。
+                    context.startActivity(
+                        AccessibilityHelper.settingsIntent().addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    )
+                }
             )
 
             ToggleCard(
@@ -176,12 +185,19 @@ fun MainScreen(
     }
 }
 
+/**
+ * 权限卡片三行（2026-08-29-permission-tri-card）：悬浮窗 / 通知（现状不变）+
+ * 无障碍权限（免弹窗截屏）。无障碍行状态实时读系统回显（MainUiState.accessibilityEnabled，
+ * onResume 刷新）；行说明常显，讲清与 MediaProjection 录制弹窗的关系。
+ */
 @Composable
 fun PermissionCard(
     overlayGranted: Boolean,
     notificationGranted: Boolean,
+    accessibilityEnabled: Boolean,
     onRequestOverlay: () -> Unit,
-    onRequestNotification: () -> Unit
+    onRequestNotification: () -> Unit,
+    onRequestAccessibility: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -191,6 +207,10 @@ fun PermissionCard(
             Text("权限状态", style = MaterialTheme.typography.titleMedium)
             PermissionRow("悬浮窗权限", overlayGranted, onGrant = onRequestOverlay)
             PermissionRow("通知权限", notificationGranted, onGrant = onRequestNotification)
+            AccessibilityPermissionRow(
+                enabled = accessibilityEnabled,
+                onEnable = onRequestAccessibility
+            )
         }
     }
 }
@@ -207,6 +227,32 @@ private fun PermissionRow(label: String, granted: Boolean, onGrant: () -> Unit) 
         } else {
             TextButton(onClick = onGrant) { Text("去授权") }
         }
+    }
+}
+
+/**
+ * 第三行「无障碍权限（免弹窗截屏）」：已开启 → 绿色 ✓ 文本（无按钮）；
+ * 未开启 → 「去开启」深链系统无障碍设置；行说明常显（含 Android 10 及以下回退说明）。
+ */
+@Composable
+private fun AccessibilityPermissionRow(enabled: Boolean, onEnable: () -> Unit) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("无障碍权限（免弹窗截屏）", modifier = Modifier.weight(1f))
+            if (enabled) {
+                Text("已开启 ✓", color = Color(0xFF2E7D32))
+            } else {
+                TextButton(onClick = onEnable) { Text("去开启") }
+            }
+        }
+        Text(
+            "开启后点悬浮球零弹窗识读（Android 10 及以下回退系统录制弹窗）",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
