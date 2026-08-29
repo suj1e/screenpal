@@ -264,7 +264,7 @@ class SelectionOverlayActivity : ComponentActivity() {
                             // （Direct，无标注），仅当确实需要翻译时才标注「翻译不可用」。
                             val needsTranslation = settings.translationEnabled &&
                                 !com.suj1e.screenpal.translate.ChineseHeuristic.isMostlyChinese(result.text)
-                            Log.w(TAG, "所选在线服务商缺少转译凭据；跳过翻译直读原文")
+                            Log.w(TAG, "StepFun 转译凭据缺失；跳过翻译直读原文")
                             app.ttsManager.speak(result.text)
                             if (needsTranslation) BroadcastOutcome.FallbackOriginal else BroadcastOutcome.Direct
                         }

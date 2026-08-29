@@ -6,12 +6,12 @@
 
 - **悬浮球**：授予悬浮窗权限后启动服务，退出 App 后悬浮球持续显示在桌面和任意应用上层；支持拖拽、点击触发截图。
 - **框选识别**：点击悬浮球 → 自动截取当前屏幕 → 全屏截图上随手圈选区域（画圈/划线，最小 48dp）→ 自动 OCR 识别 → 自动 TTS 播报。
-- **OCR**：端侧 PaddleOCR（PP-OCRv4 ONNX）离线识别；可选豆包视觉（火山方舟）云端增强；混合模式在端侧置信度低于 0.75 时自动走云端。
+- **OCR**：端侧 PaddleOCR（PP-OCRv4 ONNX）离线识别；可选 StepFun 视觉（step-3.7-flash）云端增强；混合模式在端侧置信度低于 0.75 时自动走云端。
 - **TTS 播报**：
   - Piper（默认）：ONNX Runtime 端侧推理，中文女声 `zh_CN-huayan-medium`（约 15MB，首次使用自动从 HuggingFace 下载到应用私有目录，支持断点续传）；
-  - 豆包在线语音（云端）：火山引擎 TTS，默认音色 BV001_streaming，需在设置中填写 AppID + Token（火山引擎控制台开通语音技术后获取）；
+  - StepFun 在线语音（云端）：stepaudio-2.5-tts 大模型音色，默认 tianmeinvsheng，需在设置中填写 StepFun API Key（platform.stepfun.com 获取）；
   - System：系统 TextToSpeech 兜底；
-  - 任一引擎失败自动降级 Piper → 豆包在线语音 → System（从所选引擎顺延）。
+  - 任一引擎失败自动降级 Piper → System（从所选引擎顺延）。
 - **结果操作**：识别完成后底部卡片展示文本与置信度，可停止播报、复制文本、重新框选。
 
 ## 权限说明
@@ -32,14 +32,14 @@ MediaProjection 授权数据仅保存在内存中（Application 单例），App 
 3. **开启悬浮窗**：点击「启动悬浮窗」按钮或开关，状态栏出现常驻通知即表示服务运行中。
 4. **回到任意界面**：按 Home 键退出 App，悬浮球保持在屏幕右侧。
 5. **识别播报**：点击悬浮球 → 系统弹出屏幕录制授权确认 → 随手圈出要朗读的文字区域 → 松手后自动识别并播报。
-6. **调整配置**：回到 App 可切换 OCR 模式、TTS 引擎、语速（0.5x–2.0x）、音调（0.5–2.0），并按所选云端服务填写凭据（OCR API Key / 豆包在线语音 AppID+Token+音色）。
+6. **调整配置**：回到 App 可切换 OCR 模式、TTS 引擎、语速（0.5x–2.0x）、音调（0.5–2.0），并在「StepFun 云服务」中填写 API Key 与音色（一把 Key 包办在线语音 / 云 OCR / AI 转译）。
 
 ## 已知限制
 
 - 不支持视频画面逐帧识别（单次静态截图）。
 - APK 不内置 Piper 模型以控制体积；首次使用 Piper 需网络下载模型（约 15MB）。
 - Piper 音素映射为简化实现（直接查 config 的 phoneme_id_map），未集成 espeak-ng 分词归一化，长难句发音可能不自然——可切换 System TTS 作为替代。
-- 豆包在线语音（火山引擎）为付费服务（有免费额度），需在火山引擎控制台开通语音技术并创建应用获取 AppID/Token；无凭据或调用失败自动降级 Piper。豆包视觉云端增强（OCR）需火山方舟凭据，同理。
+- StepFun 云服务（在线语音 / 视觉 OCR / 转译）为付费服务（有免费额度），需在 platform.stepfun.com 创建 API Key；无凭据或调用失败自动降级 Piper / 端侧。
 - OEM 后台清理可能杀掉悬浮窗服务，可在系统设置中将 App 加入自启动白名单。
 
 ## 构建说明
@@ -90,6 +90,6 @@ A：受限于简化音素映射，建议切换到 SYSTEM 引擎对比效果。
 - Jetpack WindowManager + TYPE_APPLICATION_OVERLAY（悬浮窗）
 - MediaProjection + VirtualDisplay + ImageReader（屏幕截取）
 - FileProvider content:// Uri 传递截图（规避 Binder 1MB 限制）
-- PaddleOCR PP-OCRv4（端侧 ONNX）/ 豆包视觉（火山方舟，云端）
-- ONNX Runtime + Piper VITS（端侧神经 TTS）/ 豆包在线语音·火山引擎（云端）/ 系统 TTS（兜底）
+- PaddleOCR PP-OCRv4（端侧 ONNX）/ StepFun step-3.7-flash（云端视觉）
+- ONNX Runtime + Piper VITS（端侧神经 TTS）/ StepFun stepaudio-2.5-tts（云端）/ 系统 TTS（兜底）
 - DataStore Preferences（配置持久化）+ Ktor Client（网络）
