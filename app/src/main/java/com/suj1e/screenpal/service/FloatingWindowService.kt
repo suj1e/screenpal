@@ -1,5 +1,6 @@
 package com.suj1e.screenpal.service
 
+import android.app.AlertDialog
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -246,9 +247,42 @@ class FloatingWindowService : Service() {
         })
     }
 
-    /** 未开启无障碍的引导对话框（task 3 接真实对话框，暂回落录屏）。 */
+    /**
+     * 未开启无障碍的引导对话框（2026-08-29-a11y-screenshot task 3）：
+     * 用途说明 + 「去开启」（直跳系统无障碍设置）+「本次仍用录屏」（老路径）。
+     * 按钮回调抽成 [showA11yGuideDialog] 参数，JVM 可直接验证接线。
+     */
     private fun showAccessibilityGuide() {
-        android.util.Log.d(TAG, "a11y disabled: guide dialog pending (task 3), falling back to projection")
+        showA11yGuideDialog(
+            onGoToSettings = ::openAccessibilitySettings,
+            onUseProjection = ::useProjectionThisTime,
+            onCancel = ::showFloatingBall
+        )
+    }
+
+    /** 引导对话框本体；三个出口均以回调注入。 */
+    internal fun showA11yGuideDialog(
+        onGoToSettings: () -> Unit,
+        onUseProjection: () -> Unit,
+        onCancel: () -> Unit
+    ) {
+        AlertDialog.Builder(this)
+            .setTitle("开启无障碍后可免授权一键识读")
+            .setMessage("开启无障碍后，念念无需每次授权录屏即可静默截屏识别文字；截屏内容仅在本地处理。")
+            .setPositiveButton("去开启") { _, _ -> onGoToSettings() }
+            .setNegativeButton("本次仍用录屏") { _, _ -> onUseProjection() }
+            .setOnCancelListener { onCancel() }
+            .show()
+    }
+
+    /** 「去开启」：恢复悬浮球后直跳系统无障碍设置页。 */
+    internal fun openAccessibilitySettings() {
+        showFloatingBall()
+        startActivity(AccessibilityHelper.settingsIntent().addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    }
+
+    /** 「本次仍用录屏」：转入原 MediaProjection 路径（授权/捕获逻辑原样保留）。 */
+    internal fun useProjectionThisTime() {
         legacyCapture()
     }
 
