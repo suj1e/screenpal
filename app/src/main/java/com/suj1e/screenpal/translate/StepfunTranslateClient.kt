@@ -19,7 +19,8 @@ import kotlinx.serialization.json.contentOrNull
 
 /**
  * AI 转译客户端（StepFun / 阶跃星辰）：调用 StepFun chat/completions 把任意语言
- * 转写为简体中文。
+ * 转写为简体中文；并支持 AI 讲解（explain，2026-08-29-broadcast-mode）——同端点
+ * 同 Key，仅 system prompt 不同，用简体中文口语化解释圈选内容。
  * 任何错误（无 Key / HTTP 错误码 / 网络异常 / 空、畸形响应）都抛 [TranslationException]，
  * 由上层管道决定是否降级播报原文。
  */
@@ -28,37 +29,56 @@ class StepfunTranslateClient(
     private val httpClient: HttpClient = HttpClient(Android)
 ) : TranslateService {
 
-    override suspend fun translate(text: String): String {
-        if (apiKey.isBlank()) throw TranslationException("翻译缺少 StepFun API Key")
+    override suspend fun translate(text: String): String =
+        chat(text, "翻译") { buildRequestJson(it) }
+
+    override suspend fun explain(text: String): String =
+        chat(text, "讲解") { buildExplainRequestJson(it) }
+
+    /**
+     * 转译/讲解共用请求-响应管线：错误映射同构（缺 Key / 网络 / HTTP / 解析 / 空结果），
+     * 仅 prompt 与错误文案前缀（[kind]）不同。
+     */
+    private suspend fun chat(
+        text: String,
+        kind: String,
+        buildJson: (String) -> String
+    ): String {
+        if (apiKey.isBlank()) throw TranslationException("${kind}缺少 StepFun API Key")
 
         val q = truncateToUtf8Bytes(text, MAX_Q_UTF8_BYTES)
         val response = try {
             httpClient.post(ENDPOINT) {
                 header(HttpHeaders.Authorization, "Bearer $apiKey")
                 contentType(ContentType.Application.Json)
-                setBody(buildRequestJson(q))
+                setBody(buildJson(q))
             }
         } catch (e: Exception) {
-            throw TranslationException("翻译请求失败：${e.message}", e)
+            throw TranslationException("${kind}请求失败：${e.message}", e)
         }
 
         if (!response.status.isSuccess()) {
-            throw TranslationException("翻译服务返回 HTTP ${response.status.value}")
+            throw TranslationException("${kind}服务返回 HTTP ${response.status.value}")
         }
 
         val content = parseTranslationContent(response.bodyAsText())
-            ?: throw TranslationException("翻译响应缺少 choices[0].message.content")
-        if (content.isBlank()) throw TranslationException("翻译结果为空")
+            ?: throw TranslationException("${kind}响应缺少 choices[0].message.content")
+        if (content.isBlank()) throw TranslationException("${kind}结果为空")
         return content
     }
 
     /** Serializes the StepFun chat/completions payload: system 转译指令 + 用户文本，温度 0。 */
-    internal fun buildRequestJson(q: String): String = requestJson.encodeToString(
+    internal fun buildRequestJson(q: String): String = buildChatJson(SYSTEM_PROMPT, q)
+
+    /** Serializes the explain payload: EXPLAIN 讲解指令 + 用户文本（同端点/模型/温度/max_tokens）。 */
+    internal fun buildExplainRequestJson(q: String): String = buildChatJson(EXPLAIN_SYSTEM_PROMPT, q)
+
+    private fun buildChatJson(systemPrompt: String, q: String): String = requestJson.encodeToString(
         ChatRequest.serializer(),
         ChatRequest(
             model = MODEL,
             messages = listOf(
-                ChatMessage(role = "system", content = SYSTEM_PROMPT),
+                ChatMessage(role = "system", content = systemPrompt),
                 ChatMessage(role = "user", content = q)
             ),
             temperature = TEMPERATURE
@@ -106,6 +126,15 @@ class StepfunTranslateClient(
         const val SYSTEM_PROMPT =
             "你是转译引擎。将用户内容转写为简体中文：外文翻译为自然中文；" +
                 "保留必要专名并在括号内给出简短中文说明。只输出转写结果，不解释。"
+
+        /**
+         * 讲解指令（2026-08-29-broadcast-mode，契约见
+         * StepfunTranslateClientExplainTest 逐字断言）：口语化解释"这是什么、
+         * 有什么用"，不逐字翻译，无前缀。
+         */
+        const val EXPLAIN_SYSTEM_PROMPT =
+            "用户在屏幕上圈选了这段内容。请用简体中文口语化解释：这是什么、有什么用。" +
+                "不超过80字，适合语音朗读，不要逐字翻译，不要任何前缀说明。"
 
         private val requestJson = Json { encodeDefaults = true }
         private val responseJson = Json { ignoreUnknownKeys = true }

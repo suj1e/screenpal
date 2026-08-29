@@ -32,6 +32,9 @@ class ChineseBroadcastPipelineTest {
             requested.add(text)
             return behavior(text)
         }
+
+        // EXPLAIN 行为在 broadcast-mode Task 3 的矩阵单测中钉住；此处仅保编译。
+        override suspend fun explain(text: String): String = "讲解：" + behavior(text)
     }
 
     private fun tts(): TtsManager = mockk(relaxed = true)
