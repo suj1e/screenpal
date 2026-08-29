@@ -522,10 +522,28 @@ class SelectionOverlayActivity : ComponentActivity() {
             textSize = 12f
         }
 
+        // 胶囊按钮（2026-08-29-result-card-polish）：白底品牌紫、1.5dp 40% 透明描边、
+        // 999dp 圆角、44dp 高、等权重均分、水平 4dp 间距、15sp medium；按压反馈由
+        // pillPressed 的 StateListDrawable 提供。onClick 回调行为不变。
+        val density = resources.displayMetrics.density
+
         fun actionButton(label: String, onClick: () -> Unit): Button =
             Button(this).apply {
                 text = label
-                textSize = 13f
+                textSize = PILL_TEXT_SP
+                setTextColor(PILL_TEXT_COLOR)
+                setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL))
+                isAllCaps = false
+                background = pillPressed(
+                    PILL_STROKE_COLOR,
+                    (PILL_STROKE_DP * density).roundToInt(),
+                    PILL_CORNER_RADIUS_DP * density
+                )
+                // width=0 + weight=1 → 四按钮等宽均分；height 44dp。
+                layoutParams = LinearLayout.LayoutParams(0, (PILL_HEIGHT_DP * density).roundToInt(), 1f).apply {
+                    leftMargin = (PILL_MARGIN_DP * density).roundToInt()
+                    rightMargin = (PILL_MARGIN_DP * density).roundToInt()
+                }
                 setOnClickListener { onClick() }
             }
 
