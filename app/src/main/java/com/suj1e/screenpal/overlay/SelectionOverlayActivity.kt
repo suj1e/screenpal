@@ -112,6 +112,16 @@ class SelectionOverlayActivity : ComponentActivity() {
             bounds.width() >= minSizePx || bounds.height() >= minSizePx
 
         /**
+         * Pure RECT-drag normalization (2026-08-29-selection-mode): the drag
+         * rect is built from min/max of the start and current points, so any
+         * drag direction yields a proper Rect(start,end). A single tap
+         * degenerates to a zero-size box, which the shared size gate rejects.
+         * Exposed for JVM unit tests.
+         */
+        internal fun normalizeRect(x1: Float, y1: Float, x2: Float, y2: Float): RectF =
+            RectF(minOf(x1, x2), minOf(y1, y2), maxOf(x1, x2), maxOf(y1, y2))
+
+        /**
          * 结果卡 meta 标注映射：翻译发生 → 「AI 转译」；降级 → 「翻译不可用」；
          * 中文直读 → 不标注。Exposed for JVM unit tests.
          */
@@ -162,7 +172,7 @@ class SelectionOverlayActivity : ComponentActivity() {
             }
         } ?: Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)
 
-        selectionView = SelectionView(this)
+        selectionView = SelectionView(this, mode = loadSelectionMode())
         resultCard = buildResultCard()
 
         val root = android.widget.FrameLayout(this).apply {
@@ -204,6 +214,19 @@ class SelectionOverlayActivity : ComponentActivity() {
         }
         hintFadeRunnable = fade
         hint.postDelayed(fade, HINT_DELAY_MS)
+    }
+
+    /**
+     * 框选方式（2026-08-29-selection-mode）：构造 [SelectionView] 前同步读一次
+     * 设置（DataStore 小文件，首帧读一次可接受）；脏值/未知值一律回退 LASSO，
+     * 升级用户行为不变。
+     */
+    private fun loadSelectionMode(): SelectionMode {
+        val app = application as ScreenPalApplication
+        val raw = kotlinx.coroutines.runBlocking {
+            app.settingsRepository.userSettings.first().selectionMode
+        }
+        return SelectionMode.fromStorageValue(raw)
     }
 
     /**
@@ -376,7 +399,10 @@ class SelectionOverlayActivity : ComponentActivity() {
         return card
     }
 
-    private inner class SelectionView(context: android.content.Context) : View(context) {
+    private inner class SelectionView(
+        context: android.content.Context,
+        private val mode: SelectionMode
+    ) : View(context) {
         private val overlayPaint = Paint().apply {
             color = Color.parseColor("#8F000000")
             style = Paint.Style.FILL
@@ -402,21 +428,38 @@ class SelectionOverlayActivity : ComponentActivity() {
             isAntiAlias = true
         }
 
+        // RECT 模式（2026-08-29-selection-mode）：半透明紫填充 + 共用 4dp 紫描边。
+        private val rectFillPaint = Paint().apply {
+            color = Color.parseColor("#337B68EE")
+            style = Paint.Style.FILL
+        }
+
         /** Sampled lasso points (>= [MIN_SAMPLE_DISTANCE_DP] apart). */
         private val strokePoints = mutableListOf<PointF>()
 
         /** Smooth path rebuilt from [strokePoints] via the midpoint quadTo technique. */
         private val strokePath = Path()
+
+        /** RECT mode: normalized drag rect, non-null while a selection exists. */
+        private var dragRect: RectF? = null
+        private var rectStartX = 0f
+        private var rectStartY = 0f
         private var isSelecting = false
 
         fun resetForReselection() {
             isSelecting = false
             clearStroke()
+            clearRect()
         }
 
         private fun clearStroke() {
             strokePoints.clear()
             strokePath.reset()
+            invalidate()
+        }
+
+        private fun clearRect() {
+            dragRect = null
             invalidate()
         }
 
@@ -427,6 +470,15 @@ class SelectionOverlayActivity : ComponentActivity() {
             val dstRect = Rect(0, 0, width, height)
             canvas.drawBitmap(screenshotBitmap, srcRect, dstRect, null)
 
+            if (mode == SelectionMode.RECT) {
+                drawRectSelection(canvas)
+            } else {
+                drawLassoSelection(canvas)
+            }
+        }
+
+        /** LASSO：单层遮罩 + 沿笔迹 DST_OUT 挖孔 + 紫色笔迹（时序重做见任务 3）。 */
+        private fun drawLassoSelection(canvas: Canvas) {
             // Single offscreen layer: fill the mask, punch the hole along the
             // trace with DST_OUT, then paint the purple trace on top. One
             // saveLayer per frame, no per-pixel bitmap work.
@@ -439,33 +491,62 @@ class SelectionOverlayActivity : ComponentActivity() {
             canvas.restoreToCount(saveCount)
         }
 
+        /** RECT：只画进行中的拖拽矩形（半透明紫填充 + 4dp 紫描边），无遮罩。 */
+        private fun drawRectSelection(canvas: Canvas) {
+            val rect = dragRect ?: return
+            canvas.drawRect(rect, rectFillPaint)
+            canvas.drawRect(rect, strokePaint)
+        }
+
         override fun onTouchEvent(event: MotionEvent): Boolean {
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     isSelecting = true
-                    strokePoints.clear()
-                    strokePath.reset()
-                    addSampledPoint(event.x, event.y)
-                    invalidate()
+                    if (mode == SelectionMode.RECT) {
+                        val (x, y) = clampPoint(event.x, event.y)
+                        rectStartX = x
+                        rectStartY = y
+                        dragRect = RectF(x, y, x, y)
+                        invalidate()
+                    } else {
+                        strokePoints.clear()
+                        strokePath.reset()
+                        addSampledPoint(event.x, event.y)
+                        invalidate()
+                    }
                     return true
                 }
                 MotionEvent.ACTION_MOVE -> {
                     if (isSelecting) {
-                        addSampledPoint(event.x, event.y)
-                        invalidate()
+                        if (mode == SelectionMode.RECT) {
+                            val (x, y) = clampPoint(event.x, event.y)
+                            dragRect = normalizeRect(rectStartX, rectStartY, x, y)
+                            invalidate()
+                        } else {
+                            addSampledPoint(event.x, event.y)
+                            invalidate()
+                        }
                     }
                     return true
                 }
                 MotionEvent.ACTION_UP -> {
                     if (isSelecting) {
                         isSelecting = false
-                        finishStroke()
+                        if (mode == SelectionMode.RECT) {
+                            finishRect()
+                        } else {
+                            finishStroke()
+                        }
                     }
                     return true
                 }
                 MotionEvent.ACTION_CANCEL -> {
                     isSelecting = false
-                    clearStroke()
+                    if (mode == SelectionMode.RECT) {
+                        clearRect()
+                    } else {
+                        clearStroke()
+                    }
                     return true
                 }
                 else -> return super.onTouchEvent(event)
@@ -473,10 +554,32 @@ class SelectionOverlayActivity : ComponentActivity() {
         }
 
         /**
-         * UP judgment: confirm via bounding box when it clears the minimum
-         * size (48dp wide OR tall); otherwise buzz and clear so the user can
-         * redraw. A single tap has a zero-size box and lands in the reject
-         * branch, so it never triggers recognition.
+         * UP judgment (RECT): confirm via the normalized drag rect when it
+         * clears the minimum size (48dp wide OR tall — shared with LASSO);
+         * otherwise buzz and clear so the user can redraw. A single tap has a
+         * zero-size rect and lands in the reject branch.
+         */
+        private fun finishRect() {
+            val rect = dragRect
+            val minSizePx = MIN_SELECTION_SIZE_DP * resources.displayMetrics.density
+            if (rect != null && isSelectionLargeEnough(rect, minSizePx)) {
+                onSelectionConfirmed(
+                    Rect(
+                        rect.left.toInt(), rect.top.toInt(),
+                        rect.right.toInt(), rect.bottom.toInt()
+                    )
+                )
+            } else {
+                performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                clearRect()
+            }
+        }
+
+        /**
+         * UP judgment (LASSO): confirm via bounding box when it clears the
+         * minimum size (48dp wide OR tall); otherwise buzz and clear so the
+         * user can redraw. A single tap has a zero-size box and lands in the
+         * reject branch, so it never triggers recognition.
          */
         private fun finishStroke() {
             val bounds = computeBounds(strokePoints)
@@ -494,10 +597,14 @@ class SelectionOverlayActivity : ComponentActivity() {
             }
         }
 
+        /** Shared out-of-screen clamp: both modes coerce touch points into the view. */
+        private fun clampPoint(rawX: Float, rawY: Float): Pair<Float, Float> =
+            rawX.coerceIn(0f, width.coerceAtLeast(0).toFloat()) to
+                rawY.coerceIn(0f, height.coerceAtLeast(0).toFloat())
+
         private fun addSampledPoint(rawX: Float, rawY: Float) {
             // Clamp out-of-screen coordinates into the view (design edge case).
-            val x = rawX.coerceIn(0f, width.coerceAtLeast(0).toFloat())
-            val y = rawY.coerceIn(0f, height.coerceAtLeast(0).toFloat())
+            val (x, y) = clampPoint(rawX, rawY)
             val minDistancePx = MIN_SAMPLE_DISTANCE_DP * resources.displayMetrics.density
             val filtered = filterStrokePoints(strokePoints, PointF(x, y), minDistancePx)
             if (filtered.size != strokePoints.size) {
