@@ -28,6 +28,15 @@ class StepfunOnlySourceTest {
         )
     }
 
+    @Test
+    fun testSources_containNoDeletedVendorLayerResidue() {
+        val offenders = bannedFiles("src/test/java")
+        assertTrue(
+            "test 源码仍有已删除服务商层/旧设置键的残留：$offenders",
+            offenders.isEmpty()
+        )
+    }
+
     private fun bannedFiles(root: String): List<String> =
         File(root).walkTopDown()
             .filter { it.isFile && it.extension == "kt" }

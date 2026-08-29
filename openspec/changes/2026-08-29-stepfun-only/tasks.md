@@ -4,7 +4,7 @@
   - 验收：编译过；grep 无 Doubao|VendorRouter|volcano|cloudApiKey 残留（源码/测试；volcano/cloudApiKey 残留由任务 2 的 5 键清理收尾，Doubao/VendorRouter 已全清）
 - [x] 2. SettingsRepository/MainViewModel/MainUiState 清 5 键 + 设置卡改「StepFun 云服务」
   - 验收：设置页仅一组凭据；单测（键契约）绿（181 项全绿；文案契约测试已随本任务 UI 变更原子更新）
-- [ ] 3. 文案契约测试更新 + 全量测试绿
-  - 验收：`gradle testDebugUnitTest` 全绿
+- [x] 3. 文案契约测试更新 + 全量测试绿
+  - 验收：`gradle testDebugUnitTest` 全绿（182 项全绿；文案契约更新已随任务 2 的 UI 变更原子落地，本任务交付 test 源码残留断言 + 全量绿）
 - [ ] 4. 模拟器验收（zapply 执行）：StepFun 链路回归 + 设置页截图
   - 验收：截图 + 链路 logcat
