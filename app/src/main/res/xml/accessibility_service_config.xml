@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 静默截屏服务配置（2026-08-29-a11y-screenshot）：
+     canTakeScreenshot 是 takeScreenshot 的硬前提；
+     仅订阅 typeWindowsChanged（最小事件集），notificationTimeout 取默认。 -->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeWindowsChanged"
+    android:canTakeScreenshot="true"
+    android:description="@string/accessibility_service_description" />

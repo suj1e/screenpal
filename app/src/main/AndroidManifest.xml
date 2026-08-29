@@ -65,6 +65,23 @@
                 android:value="persistent_floating_ball_overlay" />
         </service>
 
+        <!-- Accessibility service: silent screenshot channel (API 30+), no
+             MediaProjection consent. BIND_ACCESSIBILITY_SERVICE is signature-level,
+             so only the system can bind; exported stays true for the system binding. -->
+        <service
+            android:name=".service.ScreenPalAccessibilityService"
+            android:exported="true"
+            android:label="@string/accessibility_service_label"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
+
+
         <!-- FileProvider -->
         <provider
             android:name="androidx.core.content.FileProvider"

@@ -24,4 +24,6 @@
     <string name="pitch">音调</string>
     <string name="capture_notification_title">正在截图</string>
     <string name="capture_notification_text">请稍候...</string>
+    <string name="accessibility_service_label">念念 · 免授权截屏</string>
+    <string name="accessibility_service_description">开启后，念念可静默截取屏幕内容用于文字识别，无需每次授权录屏；不收集、不上传任何屏幕数据。</string>
 </resources>
