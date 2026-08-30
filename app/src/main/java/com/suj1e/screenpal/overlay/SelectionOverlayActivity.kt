@@ -336,16 +336,10 @@ class SelectionOverlayActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         isAlive = true
 
-        // 沉浸式全屏：截图位图含真实状态栏/导航栏（截屏那一刻的系统栏），
-        // 若本页再叠一层活系统栏就会出现「上下重复」。隐藏活系统栏，
-        // 让位图 1:1 铺满——所见即截图当时的屏幕。
-        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
-        val insetsController = androidx.core.view.WindowInsetsControllerCompat(window, window.decorView)
-        insetsController.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
-        insetsController.systemBarsBehavior =
-            androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        // MIUI/HyperOS 可能无视 insets-hide——经典 FLAG_FULLSCREEN 双保险，
-        // 确保鲜活的系统栏不与截图中烤入的系统栏叠印（上下重复的根因）。
+        // 沉浸式全屏：截图位图含截屏那一刻的系统栏像素，活系统栏必须
+        // 隐藏，否则与位图顶部叠印（MIUI 上「上下重复」的根因）。
+        // 注意：不要 setDecorFitsSystemWindows(false)——它会禁用
+        // FLAG_FULLSCREEN；MIUI 尊重老式 flag 而无视 insets-controller。
         @Suppress("DEPRECATION")
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN)
         applyLegacyImmersiveFlags()
