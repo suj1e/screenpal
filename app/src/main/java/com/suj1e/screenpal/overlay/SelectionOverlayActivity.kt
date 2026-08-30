@@ -420,7 +420,7 @@ class SelectionOverlayActivity : ComponentActivity() {
                 android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
                 Gravity.TOP or Gravity.END
             )
-            lp.setMargins(0, 130.dpToPx(), 24.dpToPx(), 0)
+            lp.setMargins(0, 0, 24.dpToPx(), 0)
             layoutParams = lp
             setPadding(24.dpToPx(), 10.dpToPx(), 24.dpToPx(), 10.dpToPx())
             setOnClickListener { finish() }
@@ -431,21 +431,18 @@ class SelectionOverlayActivity : ComponentActivity() {
     /** First-entry coaching hint: "用手指圈出要朗读的文字", fades out after 3s. */
     private fun addFirstEntryHint(root: android.widget.FrameLayout) {
         val hint = TextView(this).apply {
-            text = "用手指圈出要朗读的文字 · 轻点空白可退出"
+            text = "圈出要朗读的文字 · 轻点空白退出"
             textSize = 14f
             setTextColor(Color.WHITE)
             setBackgroundColor(Color.parseColor("#66000000"))
-            setPadding(40, 24, 40, 24)
+            setPadding(40, 24, 200, 24)
             gravity = Gravity.CENTER
         }
         root.addView(hint, android.widget.FrameLayout.LayoutParams(
+            android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
             android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,
-            android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,
-            Gravity.CENTER_HORIZONTAL or Gravity.TOP
-        ).apply {
-            topMargin = 0
-            marginEnd = 220
-        })
+            Gravity.TOP
+        ).apply { topMargin = 0 })
 
         hintText = hint
         // 3s 后降为半透明常驻（不消失）：顶部的提示条正好盖住截图位图中
