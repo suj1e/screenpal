@@ -249,7 +249,7 @@ class SelectionOverlayActivity : ComponentActivity() {
         internal const val PILL_MARGIN_DP = 4
 
         /** 胶囊按钮文字字号（sp）。 */
-        internal const val PILL_TEXT_SP = 15f
+        internal const val PILL_TEXT_SP = 13f
 
         /** 识别文本滚动区最大高度占屏高比例（40%）。 */
         internal const val RESULT_TEXT_MAX_HEIGHT_FRACTION = 0.4f
@@ -348,6 +348,7 @@ class SelectionOverlayActivity : ComponentActivity() {
         // 确保鲜活的系统栏不与截图中烤入的系统栏叠印（上下重复的根因）。
         @Suppress("DEPRECATION")
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN)
+        applyLegacyImmersiveFlags()
 
         // NOTE: do NOT set FLAG_NOT_FOCUSABLE here (a leftover from the
         // floating-window service requirements) — a focusable activity must
@@ -388,6 +389,21 @@ class SelectionOverlayActivity : ComponentActivity() {
 
     private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density).toInt()
 
+    /** MIUI 对 insets-hide 常不生效——legacy 沉浸式 flag 是它认的方式。 */
+    private fun applyLegacyImmersiveFlags() {
+        @Suppress("DEPRECATION")
+        window.decorView.systemUiVisibility =
+            android.view.View.SYSTEM_UI_FLAG_FULLSCREEN or
+            android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
+            android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
+            android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) applyLegacyImmersiveFlags()
+    }
+
     /** 右上角显式退出按钮：误点悬浮球的用户不必知道「轻点空白」也能离开。 */
     private fun addExitButton(root: android.widget.FrameLayout) {
         val close = android.widget.TextView(this).apply {
@@ -404,7 +420,7 @@ class SelectionOverlayActivity : ComponentActivity() {
                 android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
                 Gravity.TOP or Gravity.END
             )
-            lp.setMargins(0, 36.dpToPx(), 36.dpToPx(), 0)
+            lp.setMargins(0, 24.dpToPx(), 24.dpToPx(), 0)
             layoutParams = lp
             setPadding(24.dpToPx(), 10.dpToPx(), 24.dpToPx(), 10.dpToPx())
             setOnClickListener { finish() }
@@ -416,7 +432,7 @@ class SelectionOverlayActivity : ComponentActivity() {
     private fun addFirstEntryHint(root: android.widget.FrameLayout) {
         val hint = TextView(this).apply {
             text = "用手指圈出要朗读的文字 · 轻点空白可退出"
-            textSize = 15f
+            textSize = 14f
             setTextColor(Color.WHITE)
             setBackgroundColor(Color.parseColor("#66000000"))
             setPadding(40, 24, 40, 24)
@@ -426,7 +442,10 @@ class SelectionOverlayActivity : ComponentActivity() {
             android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,
             android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,
             Gravity.CENTER_HORIZONTAL or Gravity.TOP
-        ).apply { topMargin = 120 })
+        ).apply {
+            topMargin = 200
+            marginEnd = 220
+        })
 
         hintText = hint
         val fade = Runnable {
@@ -626,6 +645,8 @@ class SelectionOverlayActivity : ComponentActivity() {
                 setTextColor(PILL_TEXT_COLOR)
                 setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL))
                 isAllCaps = false
+                isSingleLine = true
+                setPadding(8, 0, 8, 0)
                 background = pillPressed(
                     PILL_STROKE_COLOR,
                     (PILL_STROKE_DP * density).roundToInt(),

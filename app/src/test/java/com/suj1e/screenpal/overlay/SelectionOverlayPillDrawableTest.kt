@@ -50,7 +50,7 @@ class SelectionOverlayPillDrawableTest {
         assertEquals(1.5f, SelectionOverlayActivity.PILL_STROKE_DP, 0f)
         assertEquals(44, SelectionOverlayActivity.PILL_HEIGHT_DP)
         assertEquals(4, SelectionOverlayActivity.PILL_MARGIN_DP)
-        assertEquals(15f, SelectionOverlayActivity.PILL_TEXT_SP, 0f)
+        assertEquals(13f, SelectionOverlayActivity.PILL_TEXT_SP, 0f)
     }
 
     @Test
