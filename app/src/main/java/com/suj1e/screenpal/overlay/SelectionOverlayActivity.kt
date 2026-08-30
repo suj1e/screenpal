@@ -448,13 +448,17 @@ class SelectionOverlayActivity : ComponentActivity() {
         })
 
         hintText = hint
+        // 3s 后降为半透明常驻（不消失）：顶部的提示条正好盖住截图位图中
+        // 烤入的状态栏像素（a11y 全屏截屏含系统栏，隐藏活系统栏后会露出）。
         val fade = Runnable {
-            hint.animate().alpha(0f).setDuration(400).withEndAction {
-                hint.visibility = View.GONE
-            }
+            hint.animate().alpha(0.45f).setDuration(400).start()
         }
         hintFadeRunnable = fade
         hint.postDelayed(fade, HINT_DELAY_MS)
+        hint.post {
+            // 立即盖住位图顶部的状态栏像素（淡出前就位）。
+            hint.translationY = 0f
+        }
     }
 
     /**
