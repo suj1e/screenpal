@@ -374,14 +374,48 @@ class SelectionOverlayActivity : ComponentActivity() {
                 Gravity.BOTTOM
             ).apply { setMargins(0, 0, 0, 0) })
         }
+        // 沉浸式后卡片会顶到手势条下面——用导航栏 inset 做底部避让，
+        // 保证四个胶囊按钮完整可见。
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
+            val nav = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars())
+            view.setPadding(0, 0, 0, nav.bottom)
+            insets
+        }
         addFirstEntryHint(root)
+        addExitButton(root)
         setContentView(root)
+    }
+
+    private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density).toInt()
+
+    /** 右上角显式退出按钮：误点悬浮球的用户不必知道「轻点空白」也能离开。 */
+    private fun addExitButton(root: android.widget.FrameLayout) {
+        val close = android.widget.TextView(this).apply {
+            text = "✕ 退出"
+            textSize = 14f
+            setTextColor(android.graphics.Color.WHITE)
+            background = android.graphics.drawable.GradientDrawable().apply {
+                cornerRadius = 24.dpToPx().toFloat()
+                setColor(0x66000000)
+            }
+            gravity = Gravity.CENTER
+            val lp = android.widget.FrameLayout.LayoutParams(
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.TOP or Gravity.END
+            )
+            lp.setMargins(0, 36.dpToPx(), 36.dpToPx(), 0)
+            layoutParams = lp
+            setPadding(24.dpToPx(), 10.dpToPx(), 24.dpToPx(), 10.dpToPx())
+            setOnClickListener { finish() }
+        }
+        root.addView(close)
     }
 
     /** First-entry coaching hint: "用手指圈出要朗读的文字", fades out after 3s. */
     private fun addFirstEntryHint(root: android.widget.FrameLayout) {
         val hint = TextView(this).apply {
-            text = "用手指圈出要朗读的文字"
+            text = "用手指圈出要朗读的文字 · 轻点空白可退出"
             textSize = 15f
             setTextColor(Color.WHITE)
             setBackgroundColor(Color.parseColor("#66000000"))
