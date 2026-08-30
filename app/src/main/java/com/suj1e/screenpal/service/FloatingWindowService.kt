@@ -20,7 +20,6 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.Toast
 import com.suj1e.screenpal.R
-import com.suj1e.screenpal.util.PermissionHelper
 import com.suj1e.screenpal.ScreenPalApplication
 import com.suj1e.screenpal.overlay.SelectionOverlayActivity
 import com.suj1e.screenpal.util.AccessibilityHelper
