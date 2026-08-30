@@ -85,12 +85,9 @@ class FloatingWindowService : Service() {
     }
 
     private fun showFloatingBall() {
-        if (!Settings.canDrawOverlays(this)) {
-            // MIUI/HyperOS revokes the grant even when the app-details toggle
-            // says on — never crash the FGS; just surface the state.
-            Toast.makeText(this, "悬浮窗权限已被系统收回，请重新授权", Toast.LENGTH_LONG).show()
-            return
-        }
+        // 不做 canDrawOverlays 预判：MIUI/HyperOS 上该 API 与真实授权状态
+        // 不同步（权限编辑页授权后仍可能返回 false），预判会把本可用的球
+        // 挡掉。直接尝试 addView，失败再优雅降级。
         val view = LayoutInflater.from(this).inflate(R.layout.view_floating_ball, null)
 
         val params = WindowManager.LayoutParams(
@@ -107,8 +104,16 @@ class FloatingWindowService : Service() {
         }
 
         setupTouchHandling(view)
-        windowManager.addView(view, params)
-        floatingView = view
+        try {
+            windowManager.addView(view, params)
+            floatingView = view
+        } catch (e: Exception) {
+            // MIUI/HyperOS may report inconsistent grant state (canDrawOverlays
+            // false while the editor granted it, or vice versa). If the window
+            // truly cannot be added, degrade with a hint instead of crashing.
+            android.util.Log.w(TAG, "addView floating ball failed", e)
+            Toast.makeText(this, "悬浮窗无法显示：请重新授权悬浮窗权限", Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun removeFloatingBall() {
@@ -176,16 +181,6 @@ class FloatingWindowService : Service() {
     private fun onBallClicked() {
         android.util.Log.d(TAG, "ball clicked, hasProjection=${(application as ScreenPalApplication).hasValidMediaProjection()}")
         removeFloatingBall()
-        if (!Settings.canDrawOverlays(this)) {
-            // Grant was revoked after the ball was added (MIUI does this);
-            // entering the pipeline would leave us ball-less with no recovery.
-            restoreAfterFailure("悬浮窗权限已被系统收回")
-            startActivity(
-                PermissionHelper.overlayPermissionIntent(this)
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            )
-            return
-        }
         when (
             resolveScreenshotRoute(
                 sdkInt = Build.VERSION.SDK_INT,
