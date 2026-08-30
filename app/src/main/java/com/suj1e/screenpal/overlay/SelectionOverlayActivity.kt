@@ -420,7 +420,7 @@ class SelectionOverlayActivity : ComponentActivity() {
                 android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
                 Gravity.TOP or Gravity.END
             )
-            lp.setMargins(0, 24.dpToPx(), 24.dpToPx(), 0)
+            lp.setMargins(0, 130.dpToPx(), 24.dpToPx(), 0)
             layoutParams = lp
             setPadding(24.dpToPx(), 10.dpToPx(), 24.dpToPx(), 10.dpToPx())
             setOnClickListener { finish() }
@@ -443,7 +443,7 @@ class SelectionOverlayActivity : ComponentActivity() {
             android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,
             Gravity.CENTER_HORIZONTAL or Gravity.TOP
         ).apply {
-            topMargin = 200
+            topMargin = 0
             marginEnd = 220
         })
 
