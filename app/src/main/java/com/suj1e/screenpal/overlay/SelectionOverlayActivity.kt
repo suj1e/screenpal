@@ -369,11 +369,20 @@ class SelectionOverlayActivity : ComponentActivity() {
                 Gravity.BOTTOM
             ).apply { setMargins(0, 0, 0, 0) })
         }
-        // 沉浸式后卡片会顶到手势条下面——用导航栏 inset 做底部避让，
-        // 保证四个胶囊按钮完整可见。
+        // 沉浸式后卡片会顶到手势条下面——用系统栏 inset 做避让，保证
+        // 四个胶囊按钮完整可见。顶部固定垫状态栏高度：MIUI 的全屏 flag
+        // 不总生效，垫高后提示条/退出按钮永远不会与活状态栏叠印。
+        val statusBarHeightPx = runCatching {
+            resources.getDimensionPixelSize(
+                resources.getIdentifier("status_bar_height", "dimen", "android")
+            )
+        }.getOrDefault(0)
         androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
-            val nav = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars())
-            view.setPadding(0, 0, 0, nav.bottom)
+            val bars = insets.getInsets(
+                androidx.core.view.WindowInsetsCompat.Type.systemBars() or
+                    androidx.core.view.WindowInsetsCompat.Type.displayCutout()
+            )
+            view.setPadding(0, maxOf(bars.top, statusBarHeightPx), 0, bars.bottom)
             insets
         }
         addFirstEntryHint(root)
