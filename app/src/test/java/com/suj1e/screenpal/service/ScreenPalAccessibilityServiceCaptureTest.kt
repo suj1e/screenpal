@@ -28,7 +28,7 @@ import org.robolectric.util.ReflectionHelpers.ClassParameter
 @Config(sdk = [34])
 class ScreenPalAccessibilityServiceCaptureTest {
 
-    class DrivableService : ScreenPalAccessibilityService() {
+    class DrivableService : ScreenPalAccessibilityService(captureDelayMs = 0L) {
         public override fun onServiceConnected() = super.onServiceConnected()
     }
 

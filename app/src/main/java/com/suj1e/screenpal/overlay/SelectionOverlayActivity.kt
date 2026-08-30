@@ -330,6 +330,15 @@ class SelectionOverlayActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // 沉浸式全屏：截图位图含真实状态栏/导航栏（截屏那一刻的系统栏），
+        // 若本页再叠一层活系统栏就会出现「上下重复」。隐藏活系统栏，
+        // 让位图 1:1 铺满——所见即截图当时的屏幕。
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
+        val insetsController = androidx.core.view.WindowInsetsControllerCompat(window, window.decorView)
+        insetsController.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+        insetsController.systemBarsBehavior =
+            androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+
         // NOTE: do NOT set FLAG_NOT_FOCUSABLE here (a leftover from the
         // floating-window service requirements) — a focusable activity must
         // keep receiving BACK so the user can always leave this screen.

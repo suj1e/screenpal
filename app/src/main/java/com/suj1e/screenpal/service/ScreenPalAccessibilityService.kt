@@ -19,7 +19,10 @@ import androidx.core.content.ContextCompat
  *
  * open 仅为单测驱动受保护的系统生命周期回调（DrivableService）。
  */
-open class ScreenPalAccessibilityService : AccessibilityService() {
+open class ScreenPalAccessibilityService(
+    /** Injectable so tests can capture synchronously (delay = 0). */
+    private val captureDelayMs: Long = CAPTURE_DELAY_MS
+) : AccessibilityService() {
 
     override fun onServiceConnected() {
         super.onServiceConnected()
@@ -54,6 +57,16 @@ open class ScreenPalAccessibilityService : AccessibilityService() {
             onResult(null)
             return
         }
+        // The a11y screenshot grabs the LAST COMPOSITED frame. The floating
+        // ball was removed on the UI thread moments ago; request the capture
+        // one frame later so the removal is out of the frame (ball was baked
+        // into real-device captures).
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            captureNow(onResult)
+        }, captureDelayMs)
+    }
+
+    private fun captureNow(onResult: (Bitmap?) -> Unit) {
         try {
             takeScreenshot(
                 Display.DEFAULT_DISPLAY,
@@ -97,6 +110,8 @@ open class ScreenPalAccessibilityService : AccessibilityService() {
     }
 
     companion object {
+        /** Delay before a11y capture: lets the ball-removal frame composite out. */
+        const val CAPTURE_DELAY_MS = 150L
         const val TAG = "ScreenPalFlow"
 
         /** 当前被系统绑定的服务实例；未启用或被杀为 null。 */
