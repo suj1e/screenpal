@@ -212,6 +212,14 @@ fun PermissionCard(
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("权限状态", style = MaterialTheme.typography.titleMedium)
             PermissionRow("悬浮窗权限", overlayGranted, onGrant = onRequestOverlay)
+            if (overlayGranted) {
+                Text(
+                    "小米系请在弹出的权限编辑页同时开启「后台弹出界面」，否则其他应用上点球无法打开框选页",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 16.dp)
+                )
+            }
             PermissionRow("通知权限", notificationGranted, onGrant = onRequestNotification)
             AccessibilityPermissionRow(
                 enabled = accessibilityEnabled,

@@ -84,6 +84,11 @@ class SelectionOverlayActivity : ComponentActivity() {
     }
 
     companion object {
+        /** True while a selection screen is foreground-able (BAL-block watchdog). */
+        @Volatile
+        var isAlive: Boolean = false
+            private set
+
         const val EXTRA_SCREENSHOT_URI = "extra_screenshot_uri"
         const val EXTRA_SELECTION_RECT = "extra_selection_rect"
         const val TAG = "SelectionOverlay"
@@ -329,6 +334,7 @@ class SelectionOverlayActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        isAlive = true
 
         // 沉浸式全屏：截图位图含真实状态栏/导航栏（截屏那一刻的系统栏），
         // 若本页再叠一层活系统栏就会出现「上下重复」。隐藏活系统栏，
@@ -338,6 +344,10 @@ class SelectionOverlayActivity : ComponentActivity() {
         insetsController.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
         insetsController.systemBarsBehavior =
             androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        // MIUI/HyperOS 可能无视 insets-hide——经典 FLAG_FULLSCREEN 双保险，
+        // 确保鲜活的系统栏不与截图中烤入的系统栏叠印（上下重复的根因）。
+        @Suppress("DEPRECATION")
+        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN)
 
         // NOTE: do NOT set FLAG_NOT_FOCUSABLE here (a leftover from the
         // floating-window service requirements) — a focusable activity must
@@ -906,6 +916,7 @@ class SelectionOverlayActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        isAlive = false
         super.onDestroy()
         hintText?.let { hint ->
             hintFadeRunnable?.let { hint.removeCallbacks(it) }

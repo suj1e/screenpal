@@ -23,6 +23,7 @@ import com.suj1e.screenpal.R
 import com.suj1e.screenpal.ScreenPalApplication
 import com.suj1e.screenpal.overlay.SelectionOverlayActivity
 import com.suj1e.screenpal.util.AccessibilityHelper
+import com.suj1e.screenpal.util.PermissionHelper
 
 /** 截屏路由：无障碍静默截屏 / 未开启引导 / MediaProjection 兜底。 */
 internal enum class ScreenshotRoute { ACCESSIBILITY, GUIDE, MEDIA_PROJECTION }
@@ -320,6 +321,22 @@ class FloatingWindowService : Service() {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         startActivity(intent)
+        // MIUI/HyperOS 的「后台弹出界面」限制会**静默**拦截后台启动：球已移除、
+        // 框选页没出现，用户视角就是球消失了。若 1.5s 内框选页未进入前台，
+        // 视为被拦 → 恢复球并引导开启该权限。
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            if (!SelectionOverlayActivity.isAlive &&
+                FloatingWindowService.serviceRunning &&
+                floatingView == null
+            ) {
+                android.util.Log.w(TAG, "selection activity did not start (MIUI background-popup block?)")
+                restoreAfterFailure("无法从后台打开框选页：请在权限编辑页允许「后台弹出界面」")
+                startActivity(
+                    PermissionHelper.overlayPermissionIntent(this)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                )
+            }
+        }, SELECTION_START_TIMEOUT_MS)
     }
 
     private fun launchConsent() {
@@ -403,6 +420,8 @@ class FloatingWindowService : Service() {
             a11yServiceRunning -> ScreenshotRoute.ACCESSIBILITY
             else -> ScreenshotRoute.MEDIA_PROJECTION
         }
+
+        const val SELECTION_START_TIMEOUT_MS = 1500L
 
         /** Process-scoped liveness flag; the service dies with the process. */
         @Volatile
